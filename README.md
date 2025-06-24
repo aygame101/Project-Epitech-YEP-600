@@ -2,7 +2,7 @@
 App mobile casino  
   
 # Premier clone
-```npm install```
+```npm install```  
 installer app "expo go" sur le telephone  
 
 # Lancer l'app
