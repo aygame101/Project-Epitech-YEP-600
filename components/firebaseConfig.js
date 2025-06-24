@@ -22,4 +22,7 @@ const app = initializeApp(firebaseConfig);
 const firestore = getFirestore(app);
 
 // Déjà setup si besoin d'utiliser les données de la bdd
-//const analyticsInstance = analytics();
+// pour intégration IA
+
+// const analyticsInstance = analytics();
+// const analytics = analyticsInstance;
