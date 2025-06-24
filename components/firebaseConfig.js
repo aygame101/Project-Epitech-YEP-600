@@ -1,7 +1,7 @@
 // Configuration de base pour Firebase
 import { initializeApp } from '@react-native-firebase/app';
 import { getFirestore } from '@react-native-firebase/firestore';
-import analytics from '@react-native-firebase/analytics';
+//import analytics from '@react-native-firebase/analytics';
 import Config from 'react-native-config';
 
 // Configuration Firebase
