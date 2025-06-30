@@ -19,10 +19,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Obtenir l'instance de Firestore
-const database = getDatabase(app);
+const db = getDatabase(app);
 
 // Déjà setup si besoin d'utiliser les données de la bdd
 // pour intégration IA
 
 // const analyticsInstance = analytics();
 // const analytics = analyticsInstance;
+
+export { db };
