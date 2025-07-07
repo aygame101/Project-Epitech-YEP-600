@@ -1,4 +1,3 @@
-// userManagement.js
 import { db, firebase } from './firebaseConfig';
 
 // Constante pour le solde initial
