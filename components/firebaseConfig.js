@@ -1,7 +1,6 @@
-// Configuration de base pour Firebase
-import { initializeApp } from '@react-native-firebase/app';
-import { getDatabase } from '@react-native-firebase/database';
-//import analytics from '@react-native-firebase/analytics';
+import firebase from '@react-native-firebase/app';
+import '@react-native-firebase/auth';
+import '@react-native-firebase/firestore';
 import Config from 'react-native-config';
 
 // Configuration Firebase
@@ -15,16 +14,12 @@ const firebaseConfig = {
   measurementId: Config.MEASUREMENT_ID,
 };
 
-// Initialiser Firebase
-const app = initializeApp(firebaseConfig);
 
-// Obtenir l'instance de Firestore
-const db = getDatabase(app);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-// Déjà setup si besoin d'utiliser les données de la bdd
-// pour intégration IA
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-// const analyticsInstance = analytics();
-// const analytics = analyticsInstance;
-
-export { db };
+export { db, auth };
