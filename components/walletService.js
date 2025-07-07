@@ -73,3 +73,24 @@ export const getTransactionHistory = async (userId) => {
     throw error;
   }
 };
+
+//Daily bonus
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+exports.dailyBonus = functions.pubsub.schedule('0 0 * * *').onRun(async (context) => {
+  const usersSnapshot = await admin.firestore().collection('users').get();
+  const batch = admin.firestore().batch();
+
+  usersSnapshot.forEach((userDoc) => {
+    const userId = userDoc.id;
+    const walletRef = admin.firestore().collection('wallets').doc(userId);
+    batch.update(walletRef, {
+      balance: admin.firestore.FieldValue.increment(100) // Ajoute un bonus de 100
+    });
+  });
+
+  await batch.commit();
+  console.log('Daily bonus distributed to all users.');
+});
