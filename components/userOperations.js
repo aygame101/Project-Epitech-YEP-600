@@ -5,7 +5,7 @@ import { signUp, signIn } from './authService';
 const DEFAULT_EMAIL = 'user@example.com';
 const DEFAULT_PASSWORD = 'password123';
 const DEFAULT_USERNAME = 'defaultUser';
-const INITIAL_BALANCE = 0;
+const INITIAL_BALANCE = 500;
 
 // Fonction pour gérer l'authentification
 export const manageAuth = async () => {
