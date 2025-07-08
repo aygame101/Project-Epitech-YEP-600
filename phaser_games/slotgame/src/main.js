@@ -1,13 +1,17 @@
-import Phaser from 'phaser';
-import { gameConfig } from './config/gameConfig.js';
-import { PreloadScene } from './scenes/PreloadScene.js';
-import { GameScene } from './scenes/GameScene.js';
+import { Preload } from './scenes/Preload.js';
+import { Slot }    from './scenes/Slot.js';
 
-// Configuration des scènes
-gameConfig.scene = [PreloadScene, GameScene];
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: 1280,
+  height: 720,
+  backgroundColor: '#000000',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: [ Preload, Slot ]
+};
 
-// Initialisation du jeu
-const game = new Phaser.Game(gameConfig);
-
-// Export pour utilisation externe
-window.PhaserGame = game;
+new Phaser.Game(config);

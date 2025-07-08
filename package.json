@@ -20,8 +20,10 @@
     "@react-navigation/native": "^7.1.11",
     "@shopify/react-native-skia": "^2.0.5",
     "expo": "~53.0.11",
+    "expo-asset": "~11.1.7",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.6",
+    "expo-file-system": "~18.1.11",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.3.0",
@@ -41,7 +43,7 @@
     "react-native-safe-area-context": "^5.4.1",
     "react-native-screens": "^4.11.1",
     "react-native-web": "~0.20.0",
-    "react-native-webview": "^13.15.0"
+    "react-native-webview": "13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.27.7",

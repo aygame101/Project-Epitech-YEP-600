@@ -1,50 +1,18 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slot Machine 3x5</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-        }
-
-        #game-container {
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            overflow: hidden;
-            background: #000;
-        }
-
-        #phaser-game {
-            display: block;
-        }
-
-        .loading {
-            color: white;
-            text-align: center;
-            padding: 50px;
-        }
-
-        /* Styles responsives */
-        @media (max-width: 768px) {
-            #game-container {
-                margin: 10px;
-                border-radius: 10px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Machine à Sous 3×5</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; background:#040218; }
+    #game-container { width:100%; height:100%; overflow:hidden; }
+  </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="phaser-game"></div>
-    </div>
+  <div id="game-container"></div>
+  <script src="./phaser.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

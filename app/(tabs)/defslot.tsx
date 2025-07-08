@@ -1,30 +1,15 @@
 import React from 'react';
-import { WebView } from 'react-native-webview';
+import { SafeAreaView, StyleSheet } from 'react-native';
+import SlotGameWebView from '../../components/games/SlotGameWebView';
 
-const PhaserGame = () => {
-  // Chemin vers le fichier index.html pour iOS
-  const gamePath = require('../../phaser_games/slotgame/index.html');
-
+export default function App() {
   return (
-    <WebView
-      source={gamePath}
-      style={{ flex: 1 }}
-      // Optimisations pour les performances
-      cacheEnabled={true}
-      // Désactiver le zoom
-      scalesPageToFit={false}
-      scrollEnabled={false}
-      showsHorizontalScrollIndicator={false}
-      showsVerticalScrollIndicator={false}
-      // Configuration audio/vidéo
-      allowsInlineMediaPlayback={true}
-      mediaPlaybackRequiresUserAction={false}
-      // Permissions pour l'accès aux fichiers
-      allowFileAccess={true}
-      allowFileAccessFromFileURLs={true}
-      allowUniversalAccessFromFileURLs={true}
-    />
+    <SafeAreaView style={styles.container}>
+      <SlotGameWebView />
+    </SafeAreaView>
   );
-};
+}
 
-export default PhaserGame;
+const styles = StyleSheet.create({
+  container: { flex: 1 }
+});
