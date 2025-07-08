@@ -23,7 +23,7 @@ jest.mock('../components/firebaseConfig', () => {
 
 describe('addUser', () => {
   beforeEach(() => {
-    jest.clearAllMocks(); // Clear all mocks before each test
+    jest.clearAllMocks(); // Clear des mocks avant chaque tests
   });
 
   it('should successfully add a user to Firestore', async () => {
@@ -33,7 +33,7 @@ describe('addUser', () => {
 
     await addUser(userId, email, username);
 
-    // Verify the Firestore methods were called correctly
+    // Vérifiaction de l'appel à Firestore
     expect(db.collection).toHaveBeenCalledWith('users');
     const usersCollection = db.collection('users');
     expect(usersCollection.doc).toHaveBeenCalledWith(userId);
@@ -56,13 +56,13 @@ describe('addUser', () => {
   });
 
   it('should handle Firestore errors', async () => {
-    // Configure the mock to reject
+   
     const mockSetRejected = jest.fn().mockRejectedValue(new Error('Firestore error'));
     db.collection('users').doc = jest.fn(() => ({
       set: mockSetRejected,
     }));
 
-    // Expect the addUser function to throw an error
+    
     await expect(addUser('error-id', 'test@example.com', 'testUser'))
       .rejects.toThrow('Firestore error');
   });
