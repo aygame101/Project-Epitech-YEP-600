@@ -41,3 +41,5 @@ app-example
 
 # Tous
 .vscode
+
+.package-lock.json
