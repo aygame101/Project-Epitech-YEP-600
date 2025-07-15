@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text } from 'react-native';
-import { signIn, signUp } from '../../components/authService'; // Assurez-vous que le chemin est correct
+import { signIn, signUp } from '../components/authService';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
