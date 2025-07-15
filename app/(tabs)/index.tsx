@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
-import { StyleSheet } from 'react-native';
-
+import { StyleSheet, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
+  const navigation = useNavigation();
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: 'green', dark: 'pink' }}
@@ -22,7 +24,6 @@ export default function HomeScreen() {
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: le slot</ThemedText>
-
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 2: la roulette</ThemedText>
@@ -30,6 +31,11 @@ export default function HomeScreen() {
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 3: le blackjack</ThemedText>
       </ThemedView>
+      <Pressable
+        style={styles.loginButton}
+        onPress={() => navigation.navigate('login')}>
+        <ThemedText type="link">Go to Login</ThemedText>
+      </Pressable>
     </ParallaxScrollView>
   );
 }
@@ -50,5 +56,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  loginButton: {
+    marginTop: 20,
   },
 });
