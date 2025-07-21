@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "EpiGamble",
-    "slug": "EpiGamble",
+    "name": "Epigamble",
+    "slug": "Epigamble",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -33,14 +33,10 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      "expo-asset"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "assetBundlePatterns": [
-      "assets/web/"
-    ]
+    }
   }
 }

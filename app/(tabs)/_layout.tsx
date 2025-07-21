@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-import { FontAwesome6 } from '@expo/vector-icons';
-
->>>>>>> 276e26bd2e85dc0fc04436429fa4c5f79665d1c1
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -45,25 +40,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
-<<<<<<< HEAD
     </Tabs>
   );
 }
-=======
-      <Tabs.Screen
-        name="slot"
-        options={{
-          title: 'Slot',
-          tabBarIcon: ({ color, focused }) => (
-            <FontAwesome6 
-              name="chess-pawn" 
-              size={28} 
-              color={color} 
-            />
-          ),
-        }}
-      />
-    </Tabs>
-  );
-}
->>>>>>> 276e26bd2e85dc0fc04436429fa4c5f79665d1c1
