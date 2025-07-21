@@ -1,15 +1,35 @@
 import { Image } from 'expo-image';
+<<<<<<< HEAD
 import { Platform, StyleSheet } from 'react-native';
 
+=======
+import { StyleSheet, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+>>>>>>> 276e26bd2e85dc0fc04436429fa4c5f79665d1c1
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+<<<<<<< HEAD
 
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+=======
+type RootStackParamList = {
+  LoginScreen: undefined;
+  // add other screens here if needed
+};
+
+export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  return (
+    <ParallaxScrollView
+      headerBackgroundColor={{ light: 'green', dark: 'pink' }}
+>>>>>>> 276e26bd2e85dc0fc04436429fa4c5f79665d1c1
       headerImage={
         <Image
           source={require('@/assets/images/partial-react-logo.png')}
@@ -17,6 +37,7 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
+<<<<<<< HEAD
         <ThemedText type="title">Welcome!</ThemedText>
         <HelloWave />
       </ThemedView>
@@ -51,6 +72,26 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+=======
+        <ThemedText type="title">Gino!</ThemedText>
+        <HelloWave />
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 1: le slot</ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 2: la roulette</ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 3: le blackjack</ThemedText>
+      </ThemedView>
+      <Pressable
+        style={styles.loginButton}
+        onPress={() => navigation.navigate('LoginScreen')}
+      >
+        <ThemedText type="link">Go to Login</ThemedText>
+      </Pressable>
+>>>>>>> 276e26bd2e85dc0fc04436429fa4c5f79665d1c1
     </ParallaxScrollView>
   );
 }
@@ -72,4 +113,10 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
+<<<<<<< HEAD
+=======
+  loginButton: {
+    marginTop: 20,
+  },
+>>>>>>> 276e26bd2e85dc0fc04436429fa4c5f79665d1c1
 });
