@@ -1,13 +1,18 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+type RootStackParamList = {
+  LoginScreen: undefined;
+  // add other screens here if needed
+};
 
 export default function HomeScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <ParallaxScrollView
@@ -32,11 +37,11 @@ export default function HomeScreen() {
         <ThemedText type="subtitle">Step 3: le blackjack</ThemedText>
       </ThemedView>
       <Pressable
-      style={styles.loginButton}
-      onPress={() => navigation.navigate('LoginScreen')}
-    >
-      <ThemedText type="link">Go to Login</ThemedText>
-    </Pressable>
+        style={styles.loginButton}
+        onPress={() => navigation.navigate('LoginScreen')}
+      >
+        <ThemedText type="link">Go to Login</ThemedText>
+      </Pressable>
     </ParallaxScrollView>
   );
 }
