@@ -32,10 +32,11 @@ export default function HomeScreen() {
         <ThemedText type="subtitle">Step 3: le blackjack</ThemedText>
       </ThemedView>
       <Pressable
-        style={styles.loginButton}
-        onPress={() => navigation.navigate('login')}>
-        <ThemedText type="link">Go to Login</ThemedText>
-      </Pressable>
+      style={styles.loginButton}
+      onPress={() => navigation.navigate('LoginScreen')}
+    >
+      <ThemedText type="link">Go to Login</ThemedText>
+    </Pressable>
     </ParallaxScrollView>
   );
 }
