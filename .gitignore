@@ -42,3 +42,5 @@ app-example
 # Tous
 .vscode
 .env
+
+package-lock.json
