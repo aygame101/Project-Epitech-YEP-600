@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { signIn, signUp } from '../../components/authService'; 
+import { signIn, signUp } from '../../components/routes/authService'; 
 type RootStackParamList = {
   Home: undefined;
   // add other screens if needed
