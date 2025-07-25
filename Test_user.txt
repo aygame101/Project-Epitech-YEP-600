@@ -1,0 +1,3 @@
+mail : test@gmail.com
+username : testeur
+mdp : test123

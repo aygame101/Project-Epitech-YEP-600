@@ -1,3 +1,4 @@
+// components/routes/auth.js
 import React, { useState } from 'react'
 import {
   View,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   Alert
 } from 'react-native'
+import { useRouter } from 'expo-router'
 import { auth, db } from '../../config/firebaseConfig'
 import {
   createUserWithEmailAndPassword,
@@ -19,50 +21,54 @@ import {
   query,
   where,
   getDocs,
-  getDoc      // <-- importer getDoc
+  getDoc
 } from 'firebase/firestore'
 
 export const Auth = () => {
+  const router = useRouter()
   const [isSignup, setIsSignup] = useState(false)
 
   // Connexion
-  const [identifier, setIdentifier]       = useState('') // email ou username
+  const [identifier, setIdentifier]     = useState('') // email ou username
   const [loginPassword, setLoginPassword] = useState('')
 
   // Création
-  const [email,         setEmail]         = useState('')
-  const [userName,      setUserName]      = useState('')
-  const [signPassword,  setSignPassword]  = useState('')
-
-  const onAuthSuccess = (userData) => {
-    Alert.alert('Bienvenue', `Salut ${userData.userName || 'joueur'} ! Solde : ${userData.walletBalance}`)
-    // TODO : naviguer vers l’écran principal
-  }
+  const [email, setEmail]         = useState('')
+  const [userName, setUserName]   = useState('')
+  const [signPassword, setSignPassword] = useState('')
 
   const handleLogin = async () => {
     try {
       let loginEmail = identifier.trim()
 
-      // Si pas d'email, on fait lookup par username
+      // Si c'est un username, on récupère l'email associé
       if (!loginEmail.includes('@')) {
-        const q    = query(collection(db, 'Users'), where('userName', '==', loginEmail))
+        const q     = query(
+          collection(db, 'Users'),
+          where('userName', '==', loginEmail)
+        )
         const snaps = await getDocs(q)
         if (snaps.empty) {
-          return Alert.alert('Erreur', "Nom d'utilisateur introuvable")
+          return Alert.alert('Erreur', "Utilisateur introuvable")
         }
         loginEmail = snaps.docs[0].data().email
       }
 
-      // Authentification Firebase
-      const { user } = await signInWithEmailAndPassword(auth, loginEmail, loginPassword)
+      // Auth Firebase
+      const { user } = await signInWithEmailAndPassword(
+        auth,
+        loginEmail,
+        loginPassword
+      )
 
-      // Récupération du profil Firestore
-      const userRef = doc(db, 'Users', user.uid)
-      const snap    = await getDoc(userRef)    // <-- ici on utilise getDoc
+      // Profil Firestore
+      const snap = await getDoc(doc(db, 'Users', user.uid))
       if (!snap.exists()) {
-        return Alert.alert('Erreur', 'Profil non trouvé en base')
+        return Alert.alert('Erreur', 'Profil non trouvé')
       }
-      onAuthSuccess(snap.data())
+
+      // Navigation directe vers l'écran principal
+      router.replace('/')
 
     } catch (err) {
       Alert.alert('Erreur', err.message)
@@ -71,18 +77,22 @@ export const Auth = () => {
 
   const handleSignup = async () => {
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email.trim(), signPassword)
+      // Création compte Auth
+      const { user } = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        signPassword
+      )
+
+      // Création doc Firestore
       await setDoc(doc(db, 'Users', user.uid), {
         email:         email.trim(),
         userId:        user.uid,
         userName:      userName.trim(),
-        walletBalance: 500
+        walletBalance: 1000
       })
-      Alert.alert('Succès', 'Compte créé avec 500 coins')
-      // Reset et retour à login
-      setEmail('')
-      setUserName('')
-      setSignPassword('')
+
+      // Après création, on revient au formulaire de login
       setIsSignup(false)
 
     } catch (err) {
@@ -124,11 +134,17 @@ export const Auth = () => {
             onChangeText={setSignPassword}
           />
 
-          <TouchableOpacity style={styles.primaryButton} onPress={handleSignup}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleSignup}
+          >
             <Text style={styles.buttonText}>Valider</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setIsSignup(false)}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => setIsSignup(false)}
+          >
             <Text style={styles.buttonText}>Retour</Text>
           </TouchableOpacity>
         </>
@@ -154,11 +170,17 @@ export const Auth = () => {
             onChangeText={setLoginPassword}
           />
 
-          <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleLogin}
+          >
             <Text style={styles.buttonText}>Se connecter</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setIsSignup(true)}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => setIsSignup(true)}
+          >
             <Text style={styles.buttonText}>Créer un compte</Text>
           </TouchableOpacity>
         </>
@@ -169,11 +191,11 @@ export const Auth = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex:           1,
     justifyContent: 'center',
-    alignItems:  'center',
-    padding:     30,
-    backgroundColor: '#1a1a2e'
+    alignItems:     'center',
+    padding:        30,
+    backgroundColor:'#1a1a2e'
   },
   title: {
     fontSize:     28,
