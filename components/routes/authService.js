@@ -1,4 +1,4 @@
-/* import { auth, db } from './firebaseConfig';
+/*import { auth, db } from './firebaseConfig';
 import { firebase } from '@react-native-firebase/firestore';
 import React, { useState } from 'react';
 
@@ -29,5 +29,4 @@ export const signIn = async (email, password) => {
     console.error('Error during sign in:', error.message);
     throw new Error(error.message);
   }
-};
- */
+};*/

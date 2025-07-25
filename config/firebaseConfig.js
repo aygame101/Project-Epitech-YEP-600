@@ -1,25 +1,32 @@
-import firebase from '@react-native-firebase/app';
-import '@react-native-firebase/auth';
-import '@react-native-firebase/firestore';
-import Config from 'react-native-config';
+import Constants from 'expo-constants';
+import { initializeApp, getApps } from 'firebase/app';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { getFirestore } from 'firebase/firestore';
 
-// Configuration Firebase
- const firebaseConfig = {
-  apiKey: Config.API_KEY,
-  authDomain: Config.AUTH_DOMAIN,
-  projectId: Config.PROJECT_ID,
-  storageBucket: Config.STORAGE_BUCKET,
-  messagingSenderId: Config.MESSAGING_SENDER_ID,
-  appId: Config.APP_ID,
-  measurementId: Config.MEASUREMENT_ID,
+// Récupère extra depuis manifest ou expoConfig selon le contexte
+const expoExtra = Constants.manifest?.extra ?? Constants.expoConfig?.extra;
+
+const firebaseConfig = {
+  apiKey:              expoExtra.API_KEY,
+  authDomain:          expoExtra.AUTH_DOMAIN,
+  projectId:           expoExtra.PROJECT_ID,
+  storageBucket:       expoExtra.STORAGE_BUCKET,
+  messagingSenderId:   expoExtra.MESSAGING_SENDER_ID,
+  appId:               expoExtra.APP_ID,
+  measurementId:       expoExtra.MEASUREMENT_ID,
 };
 
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+// Initialisation de l'app Firebase si nécessaire
+if (!getApps().length) {
+  console.log(expoExtra.API_KEY)
+  initializeApp(firebaseConfig);
 }
 
-const db = firebase.firestore();
-const auth = firebase.auth();
+// Initialisation de l'auth avec persistance AsyncStorage
+export const auth = initializeAuth(getApps()[0], {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
 
-export { db, auth, firebaseConfig };
+// Service Firestore
+export const db = getFirestore();
