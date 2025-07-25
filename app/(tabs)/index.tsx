@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react'
+// app/(tabs)/select_game.tsx
+
+import React, { useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -6,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator
 } from 'react-native'
-import { useNavigation, CommonActions } from '@react-navigation/native'
+import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native'
 import { auth, db } from '../../config/firebaseConfig'
 import { doc, getDoc } from 'firebase/firestore'
 import { signOut } from 'firebase/auth'
@@ -23,39 +25,40 @@ export default function GameSelection() {
   const [userName, setUserName]           = useState('')
   const [walletBalance, setWalletBalance] = useState(0)
 
-  useEffect(() => {
-    const checkAuthAndLoad = async () => {
-      const user = auth.currentUser
-      if (!user) {
-        // redirection propre vers LoginScreen
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'loginScreen' }],
-          })
-        )
-        return
-      }
-
-      // si connecté, on charge le profil
-      try {
-        const snap = await getDoc(doc(db, 'Users', user.uid))
-        if (snap.exists()) {
-          const data = snap.data()
-          setUserName(data.userName || '')
-          setWalletBalance(data.walletBalance || 0)
-        } else {
-          console.warn('Profil introuvable pour', user.uid)
-        }
-      } catch (e) {
-        console.error('Erreur lecture profil', e)
-      } finally {
-        setLoading(false)
-      }
+  const loadProfile = async () => {
+    const user = auth.currentUser
+    if (!user) {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'loginScreen' }],
+        })
+      )
+      return
     }
+    try {
+      const snap = await getDoc(doc(db, 'Users', user.uid))
+      if (snap.exists()) {
+        const data = snap.data()
+        setUserName(data.userName || '')
+        setWalletBalance(data.walletBalance || 0)
+      } else {
+        console.warn('Profil introuvable pour', user.uid)
+      }
+    } catch (e) {
+      console.error('Erreur lecture profil', e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    checkAuthAndLoad()
-  }, [navigation])
+  // Re-charge le profil à chaque fois que cet écran est focalisé
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true)
+      loadProfile()
+    }, [])
+  )
 
   const handleLogout = async () => {
     try {

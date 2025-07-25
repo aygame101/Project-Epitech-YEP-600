@@ -1,356 +1,361 @@
 // components/games/SlotGameWebView.js
 
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system';
+import React, { useState, useEffect } from 'react'
+import {
+  View,
+  ActivityIndicator,
+  StyleSheet,
+  Alert
+} from 'react-native'
+import { WebView } from 'react-native-webview'
+import { Asset } from 'expo-asset'
+import * as FileSystem from 'expo-file-system'
+import { useRouter } from 'expo-router'
+import { auth, db } from '../../config/firebaseConfig'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+
+// Passez à true pour un HTML minimal de debug
+const USE_MINIMAL_HTML = false
+
+// Vos 50 lignes de gains
+const PAYLINES = [
+  [0,0,0,0,0], [1,1,1,1,1], [2,2,2,2,2], [2,1,2,1,2], [0,1,0,1,0],
+  [0,1,2,1,0], [2,1,0,1,2], [0,0,1,1,0], [2,2,1,1,2], [0,1,1,1,0],
+  [1,0,0,0,1], [1,2,2,2,1], [0,1,2,2,2], [2,1,0,0,0], [0,2,1,2,0],
+  [2,0,1,0,2], [1,1,0,1,1], [1,1,2,1,1], [0,1,1,0,0], [2,1,1,2,2],
+  [0,0,2,0,0], [2,2,0,2,2], [1,0,2,0,1], [1,2,0,2,1], [0,2,2,2,0],
+  [2,0,0,0,2], [0,1,0,1,2], [2,1,2,1,0], [1,0,1,2,2], [1,2,1,0,0],
+  [0,2,0,2,0], [2,0,2,0,2], [1,1,1,0,0], [1,1,1,2,2], [0,0,1,2,2],
+  [2,2,1,0,0], [0,2,1,0,0], [2,0,1,2,2], [1,0,0,1,1], [1,2,2,1,1],
+  [0,2,2,0,0], [2,0,0,2,2], [1,1,0,0,1], [1,1,2,2,1], [0,2,0,0,0],
+  [2,0,2,2,2], [0,0,1,0,2], [2,2,1,2,0], [1,0,2,2,1], [1,2,1,1,1],
+]
 
 export default function SlotGameWebView() {
-  const [html, setHtml] = useState(null);
+  const router = useRouter()
+  const [html, setHtml]       = useState('')  // initialise à chaîne vide
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    (async () => {
-      // 1) Chargement des assets
-      const modules = [
-        require('../../assets/games/slot/background.png'),
-        require('../../assets/games/slot/slot-frame.png'),
-        require('../../assets/games/slot/spin-button.png'),
-        require('../../assets/games/slot/symbols/bar.png'),
-        require('../../assets/games/slot/symbols/bell.png'),
-        require('../../assets/games/slot/symbols/cherry.png'),
-        require('../../assets/games/slot/symbols/diamond.png'),
-        require('../../assets/games/slot/symbols/lemon.png'),
-        require('../../assets/games/slot/symbols/orange.png'),
-        require('../../assets/games/slot/symbols/plum.png'),
-        require('../../assets/games/slot/symbols/seven.png'),
-      ];
-      const assets = await Promise.all(modules.map(m => Asset.fromModule(m).downloadAsync()));
+    ;(async () => {
+      if (USE_MINIMAL_HTML) {
+        setHtml(`
+          <!DOCTYPE html>
+          <html><body style="margin:0;padding:0;background:#000">
+            <h1 style="color:#0f0">WebView OK</h1>
+          </body></html>
+        `)
+        setLoading(false)
+        return
+      }
 
-      // 2) Conversion en base64
-      const b64s = await Promise.all(
-        assets.map(a => {
-          if (!a.localUri) throw new Error('Asset.localUri is null');
-          return FileSystem.readAsStringAsync(a.localUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
+      try {
+        // 1) Récupère le solde depuis Firestore
+        const user = auth.currentUser
+        if (!user) throw new Error('Utilisateur non connecté')
+        const snap = await getDoc(doc(db, 'Users', user.uid))
+        const walletBalance = snap.exists() ? snap.data().walletBalance : 0
+
+        // 2) Charge et convertit les assets en Base64 (y compris back-button)
+        const modules = [
+          require('../../assets/games/slot/background.png'),
+          require('../../assets/games/slot/slot-frame.png'),
+          require('../../assets/games/slot/spin-button.png'),
+          require('../../assets/games/slot/back-button.png'),
+          require('../../assets/games/slot/symbols/bar.png'),
+          require('../../assets/games/slot/symbols/bell.png'),
+          require('../../assets/games/slot/symbols/cherry.png'),
+          require('../../assets/games/slot/symbols/diamond.png'),
+          require('../../assets/games/slot/symbols/lemon.png'),
+          require('../../assets/games/slot/symbols/orange.png'),
+          require('../../assets/games/slot/symbols/plum.png'),
+          require('../../assets/games/slot/symbols/seven.png'),
+        ]
+        const assets = await Promise.all(
+          modules.map(m => Asset.fromModule(m).downloadAsync())
+        )
+        const b64s = await Promise.all(
+          assets.map(a =>
+            FileSystem.readAsStringAsync(a.localUri || a.uri, {
+              encoding: FileSystem.EncodingType.Base64
+            })
+          )
+        )
+        const [bg64, frame64, spin64, back64, ...sym64] = b64s
+        const symbols = ['bar','bell','cherry','diamond','lemon','orange','plum','seven']
+        const symbolDataURIs = {}
+        symbols.forEach((k,i) => {
+          symbolDataURIs[k] = 'data:image/png;base64,' + sym64[i]
         })
-      );
-      const [bg64, frame64, spin64, ...sym64] = b64s;
-      const symbols = ['bar','bell','cherry','diamond','lemon','orange','plum','seven'];
-      const symbolDataURIs = {};
-      symbols.forEach((k, i) => {
-        symbolDataURIs[k] = 'data:image/png;base64,' + sym64[i];
-      });
 
-      // 3) Génération du HTML pour la WebView
-      const htmlContent = `
+        // 3) Génère le HTML complet avec Phaser + bouton image + position ajustée
+        const htmlContent = `
 <!DOCTYPE html>
-<html lang="fr">
-<head>
+<html lang="fr"><head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <style>
-    body,html { margin:0; padding:0; overflow:hidden; background:#000; }
-    #game-container { width:100%; height:100%; }
+    body,html { margin:0;padding:0;overflow:hidden;background:#000 }
+    #game-container { width:100%;height:100% }
   </style>
 </head>
 <body>
   <div id="game-container"></div>
   <script>
+    const symbols = ${JSON.stringify(symbols)};
     const symbolDataURIs = ${JSON.stringify(symbolDataURIs)};
-    const symbols = Object.keys(symbolDataURIs);
-    const START_TOKENS = 1000;
+    let tokens = ${walletBalance};
     const BET_AMOUNT = 10;
-    const PAYTABLE = { 3:10, 4:40, 5:100 };
+    const PAYTABLE = {3:10,4:40,5:100};
+    const PAYLINES = ${JSON.stringify(PAYLINES)};
 
-    // Chaque ligne est un array de 5 entiers {0=haut,1=milieu,2=bas}
-    const PAYLINES = [
-      // 1-7 (déjà en place)
-      [0,0,0,0,0], // 1: ligne haute
-      [1,1,1,1,1], // 2: ligne milieu
-      [2,2,2,2,2], // 3: ligne basse
-      [2,1,2,1,2], // 4: zig-zag bas-milieu-bas-milieu-bas
-      [0,1,0,1,0], // 5: zig-zag haut-milieu-haut-milieu-haut
-      [0,1,2,1,0], // 6: V inversé haut-milieu-bas-milieu-haut
-      [2,1,0,1,2], // 7: V bas-milieu-haut-milieu-bas
+    let spinBtn, reels, symbolSize, visibleRows, spacingX, winGraphics, winTexts;
+    let tokenText, backBtn;
 
-      // 8-10: lignes qui descendent puis remontent
-      [0,0,1,1,0], // 8: 2*haut → 2*milieu → haut
-      [2,2,1,1,2], // 9: 2*bas  → 2*milieu → bas
-      [0,1,1,1,0], // 10: haut → 3*milieu → haut
-
-      // 11-20: « escaliers » et « coins »
-      [1,0,0,0,1],  // 11: milieu → 3*haut → milieu
-      [1,2,2,2,1],  // 12: milieu → 3*bas  → milieu
-      [0,1,2,2,2],  // 13: haut → milieu → 3*bas
-      [2,1,0,0,0],  // 14: bas  → milieu → 3*haut
-      [0,2,1,2,0],  // 15: haut → bas  → milieu → bas  → haut
-      [2,0,1,0,2],  // 16: bas  → haut → milieu → haut → bas
-      [1,1,0,1,1],  // 17: milieu → milieu → haut → milieu → milieu
-      [1,1,2,1,1],  // 18: milieu → milieu → bas  → milieu → milieu
-      [0,1,1,0,0],  // 19: haut → 2*milieu → 2*haut
-      [2,1,1,2,2],  // 20: bas  → 2*milieu → 2*bas
-
-      // 21-30: schémas en « coin » inversés et alternés
-      [0,0,2,0,0],  // 21: 2*haut → bas → 2*haut
-      [2,2,0,2,2],  // 22: 2*bas  → haut → 2*bas
-      [1,0,2,0,1],  // 23: milieu→ haut → bas → haut → milieu
-      [1,2,0,2,1],  // 24: milieu→ bas  → haut → bas  → milieu
-      [0,2,2,2,0],  // 25: haut → 3*bas → haut
-      [2,0,0,0,2],  // 26: bas  → 3*haut→ bas
-      [0,1,0,1,2],  // 27: haut → milieu→ haut → milieu→ bas
-      [2,1,2,1,0],  // 28: bas  → milieu→ bas  → milieu→ haut
-      [1,0,1,2,2],  // 29: milieu→ haut → milieu→ 2*bas
-      [1,2,1,0,0],  // 30: milieu→ bas  → milieu→ 2*haut
-
-      // 31-40: doubles zig-zag et formes « Z »
-      [0,2,0,2,0],  // 31: haut-bas-haut-bas-haut
-      [2,0,2,0,2],  // 32: bas-haut-bas-haut-bas
-      [1,1,1,0,0],  // 33: 3*milieu → 2*haut
-      [1,1,1,2,2],  // 34: 3*milieu → 2*bas
-      [0,0,1,2,2],  // 35: 2*haut → milieu → 2*bas
-      [2,2,1,0,0],  // 36: 2*bas  → milieu → 2*haut
-      [0,2,1,0,0],  // 37: haut → bas → milieu → 2*haut
-      [2,0,1,2,2],  // 38: bas  → haut → milieu → 2*bas
-      [1,0,0,1,1],  // 39: milieu→ 2*haut → 2*milieu
-      [1,2,2,1,1],  // 40: milieu→ 2*bas  → 2*milieu
-
-      // 41-50: schémas « lunettes », « pont » et décalages
-      [0,2,2,0,0],  // 41: haut → 2*bas → 2*haut
-      [2,0,0,2,2],  // 42: bas  → 2*haut → 2*bas
-      [1,1,0,0,1],  // 43: 2*milieu → 2*haut → milieu
-      [1,1,2,2,1],  // 44: 2*milieu → 2*bas  → milieu
-      [0,2,0,0,0],  // 45: haut → bas → 3*haut
-      [2,0,2,2,2],  // 46: bas  → haut → 3*bas
-      [0,0,1,0,2],  // 47: 2*haut → milieu → haut → bas
-      [2,2,1,2,0],  // 48: 2*bas  → milieu → bas  → haut
-      [1,0,2,2,1],  // 49: milieu→ haut → 2*bas → milieu
-      [1,2,1,1,1],  // 50: milieu→ bas  → 3*milieu
-    ];
-
-    let frameImage, spinBtn;
-
-    const config = {
+    new Phaser.Game({
       type: Phaser.AUTO,
-      width: 720, height: 1280,
+      width: 720,
+      height: 1280,
       parent: 'game-container',
-      backgroundColor: '#000000',
+      backgroundColor: '#000',
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene: { preload, create }
-    };
-    new Phaser.Game(config);
+    });
 
     function preload() {
-      this.load.image('bg',    'data:image/png;base64,${bg64}');
+      this.load.image('bg', 'data:image/png;base64,${bg64}');
       this.load.image('frame', 'data:image/png;base64,${frame64}');
-      this.load.image('spin',  'data:image/png;base64,${spin64}');
+      this.load.image('spin', 'data:image/png;base64,${spin64}');
+      this.load.image('back', 'data:image/png;base64,${back64}');
       symbols.forEach(k => this.load.image(k, symbolDataURIs[k]));
     }
 
     function create() {
       const { width, height } = this.scale;
-      // fond
       this.add.image(width/2, height/2, 'bg').setDisplaySize(width, height);
 
-      // jetons
-      this.tokens = START_TOKENS;
-      this.tokenText = this.add.text(20, 20, 'Jetons: ' + this.tokens, {
-        font: '32px Arial', fill: '#ffffff'
-      }).setDepth(10);
+      // Affiche le solde en haut à droite
+      tokenText = this.add.text(
+        width - 20, 20,
+        'Jetons: ' + tokens,
+        { font: '32px Arial', fill: '#fff' }
+      ).setOrigin(1, 0).setDepth(10);
 
-      // paramètres rouleaux
-      this.symbolSize = Math.round(128 * 0.85);
-      this.visibleRows = 3;
-      this.spacingX = Math.round(120 * 1.15);
-      const startX = width/2 - 2 * this.spacingX;
+      // Ajoute bouton “Retour” en haut à gauche
+      backBtn = this.add.image(70, 70, 'back')
+        .setDisplaySize(120, 120)
+        .setInteractive()
+        .setScrollFactor(0)
+        .setDepth(20);
+      backBtn.on('pointerdown', () => {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'goBack' }));
+      });
 
-      // création des rouleaux
-      this.reels = [];
+      // Configuration des rouleaux
+      symbolSize  = Math.round(128 * 0.85);
+      visibleRows = 3;
+      spacingX    = Math.round(120 * 1.15);
+      reels       = [];
+      winGraphics = [];
+      winTexts    = [];
+
+      const startX = width/2 - 2 * spacingX;
       for (let i = 0; i < 5; i++) {
-        const c = this.add.container(startX + i*this.spacingX, height/2);
-        // 3 symboles initiaux
-        for (let r = 0; r < this.visibleRows; r++) {
-          const y = (r - 1) * this.symbolSize;
+        const c = this.add.container(startX + i * spacingX, height/2);
+        for (let r = 0; r < visibleRows; r++) {
+          const y = (r - 1) * symbolSize;
           const key = Phaser.Utils.Array.GetRandom(symbols);
-          c.add(this.add.image(0, y, key).setDisplaySize(this.symbolSize, this.symbolSize));
+          c.add(this.add.image(0, y, key).setDisplaySize(symbolSize, symbolSize));
         }
-        // mémoriser positions initiales
         c.initialYs = c.list.map(ch => ch.y);
-        this.reels.push(c);
+        reels.push(c);
       }
 
-      // cadre
-      frameImage = this.add.image(width/2, height/2, 'frame').setDisplaySize(width, height);
+      this.add.image(width/2, height/2, 'frame').setDisplaySize(width, height);
 
-      // stockage gains
-      this.winGraphics = [];
-      this.winTexts    = [];
-
-      // bouton spin
       spinBtn = this.add.image(width/2, height - 100, 'spin')
         .setDisplaySize(120, 120)
         .setDepth(10)
         .setInteractive()
         .on('pointerdown', () => spin.call(this));
+
+      if (tokens < BET_AMOUNT) spinBtn.disableInteractive();
     }
 
     function spin() {
-      // 1) cleanup
-      this.winGraphics.forEach(g => g.destroy());
-      this.winTexts.forEach(t => t.destroy());
-      this.winGraphics = [];
-      this.winTexts    = [];
+      if (tokens < BET_AMOUNT) return;
+      winGraphics.forEach(g => g.destroy());
+      winTexts.forEach(t => t.destroy());
+      winGraphics = [];
+      winTexts    = [];
 
-      // 2) retirer mise
-      this.tokens -= BET_AMOUNT;
-      this.tokenText.setText('Jetons: ' + this.tokens);
       spinBtn.disableInteractive();
+      tokens -= BET_AMOUNT;
+      tokenText.setText('Jetons: ' + tokens);
 
-      // 3) spin séquentiel assuré par spins différents
-      this.reels.forEach((c, idx) => {
+      reels.forEach((c, idx) => {
         c.prev = 0;
-        // ajoute idx*6 tours pour garantir ordre d'arrêt gauche→droite
-        const baseSpins = Phaser.Math.Between(20, 25);
-        const spins = baseSpins + idx * 6;
-        const distance = spins * this.symbolSize;
-
+        const spins = Phaser.Math.Between(20, 25) + idx * 6;
+        const dist  = spins * symbolSize;
         this.tweens.addCounter({
-          from: 0,
-          to: distance,
-          duration: spins * 80,
-          ease: 'Linear',
-          onUpdate: tween => {
-            const v = tween.getValue(),
-                  delta = v - c.prev;
+          from: 0, to: dist, duration: spins * 80, ease: 'Linear',
+          onUpdate: t => {
+            const v = t.getValue(), d = v - c.prev;
             c.prev = v;
-            // déplacer chaque sprite et recycler
             c.list.forEach(ch => {
-              ch.y += delta;
-              if (ch.y > this.symbolSize) {
-                ch.y -= this.visibleRows * this.symbolSize;
+              ch.y += d;
+              if (ch.y > symbolSize) {
+                ch.y -= visibleRows * symbolSize;
                 ch.setTexture(Phaser.Utils.Array.GetRandom(symbols));
               }
             });
           },
           onComplete: () => {
-            // recentrer sprites exactement
-            c.list.forEach((ch, i) => { ch.y = c.initialYs[i]; });
-            // si dernier rouleau, évaluer et réactiver
-            if (idx === this.reels.length - 1) {
-              evaluateResult.call(this);
-              spinBtn.setInteractive();
-            }
+            c.list.forEach((ch, i) => ch.y = c.initialYs[i]);
+            if (idx === reels.length - 1) evaluateResult.call(this);
           }
         });
       });
     }
 
     function evaluateResult() {
-      const centerX = this.scale.width/2 - 2*this.spacingX;
-      const centerY = this.scale.height/2;
-      let raw = [];
+      const cx = this.scale.width/2 - 2 * spacingX;
+      const cy = this.scale.height/2;
+      let segs = [];
 
-      // 1) collecter segments ≥3
       PAYLINES.forEach((pattern, li) => {
-        const coords = pattern.map((row, col) => [col,row]);
-        const seq = coords.map(([c,r]) => {
-          const reel = this.reels[c];
-          const targetY = reel.initialYs[r];
-          const found = reel.list.find(ch => Math.abs(ch.y - targetY) < 1) || reel.list[r];
-          return found.texture.key;
+        const coords = pattern.map((r, c) => [c, r]);
+        const seq = coords.map(([c, r]) => {
+          const reel = reels[c], y = reel.initialYs[r];
+          return (reel.list.find(ch => Math.abs(ch.y - y) < 1) || reel.list[r]).texture.key;
         });
-        const first = seq[0];
-        let count = 1;
+        let first = seq[0], count = 1;
         while (count < seq.length && seq[count] === first) count++;
-        if (count >= 3) raw.push({ symbol:first, coords:coords.slice(0,count), count, lineIndex:li });
+        if (count >= 3) segs.push({ symbol: first, coords: coords.slice(0, count), count, lineIndex: li });
       });
 
-      // 2) dédoublonnage exact
-      const uniqMap = {};
-      raw.forEach(seg => {
-        const k = seg.symbol + '|' + seg.coords.map(c=>c.join(',')).join(';');
-        if (!uniqMap[k] || seg.count > uniqMap[k].count) uniqMap[k] = seg;
+      const map = {};
+      segs.forEach(s => {
+        const k = s.symbol + '|' + s.coords.map(c => c.join(',')).join(';');
+        if (!map[k] || s.count > map[k].count) map[k] = s;
       });
-      let toPay = Object.values(uniqMap);
 
-      // 3) filtrer préfixes
-      toPay = toPay.filter(seg =>
-        !toPay.some(o =>
-          o.symbol === seg.symbol &&
-          o.count > seg.count &&
-          o.coords.slice(0, seg.count)
-            .every((c,i) => c[0]===seg.coords[i][0] && c[1]===seg.coords[i][1])
+      let toPay = Object.values(map).filter(s =>
+        !Object.values(map).some(o =>
+          o.symbol === s.symbol &&
+          o.count > s.count &&
+          s.coords.every((c, i) => o.coords[i][0] === c[0] && o.coords[i][1] === c[1])
         )
       );
+      toPay.sort((a, b) => a.coords[0][0] - b.coords[0][0]);
 
-      // 4) trier par colonne de départ
-      toPay.sort((a,b) => a.coords[0][0] - b.coords[0][0]);
-
-      // 5) dessiner lignes une à une
-      const totalWin = toPay.reduce((s,seg) => s + (PAYTABLE[seg.count]||0), 0);
-      toPay.forEach((seg, idx) => {
-        this.time.delayedCall(idx * 400, () => {
+      const totalWin = toPay.reduce((sum, s) => sum + (PAYTABLE[s.count] || 0), 0);
+      toPay.forEach((s, i) => {
+        this.time.delayedCall(i * 400, () => {
           const g = this.add.graphics();
-          g.lineStyle(6, 0xffd700, 1);
-          g.beginPath();
-          seg.coords.forEach(([col,row], i) => {
-            const x = centerX + col*this.spacingX;
-            const y = centerY + (row-1)*this.symbolSize;
-            i===0 ? g.moveTo(x,y) : g.lineTo(x,y);
+          g.lineStyle(6, 0xffd700, 1).beginPath();
+          s.coords.forEach(([c, r], j) => {
+            const x = cx + c * spacingX, y = cy + (r - 1) * symbolSize;
+            j === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
           });
-          g.strokePath();
-          this.winGraphics.push(g);
+          g.strokePath(); winGraphics.push(g);
 
-          const win = PAYTABLE[seg.count] || 0;
-          const msg = this.add.text(
-            centerX + 2*this.spacingX,
-            centerY - 200 + seg.lineIndex*20,
-            '+'+win+' (L'+(seg.lineIndex+1)+')',
-            { font:'24px Arial', fill:'#ffff00' }
+          const w = PAYTABLE[s.count] || 0;
+          const t = this.add.text(
+            cx + 2 * spacingX,
+            cy - 200 + s.lineIndex * 20,
+            '+' + w + ' (L' + (s.lineIndex + 1) + ')',
+            { font: '24px Arial', fill: '#ffff00' }
           ).setOrigin(0.5);
-          this.winTexts.push(msg);
+          winTexts.push(t);
 
-          if (idx === toPay.length - 1 && totalWin > 0) {
-            this.tokens += totalWin;
-            this.tokenText.setText('Jetons: ' + this.tokens);
-            // ramener cadre et bouton en avant
-            this.children.bringToTop(frameImage);
-            this.children.bringToTop(spinBtn);
+          if (i === toPay.length - 1) {
+            tokens += totalWin;
+            tokenText.setText('Jetons: ' + tokens);
+            if (tokens >= BET_AMOUNT) spinBtn.setInteractive();
+            window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: tokens }));
           }
         });
       });
+
+      if (totalWin === 0) {
+        if (tokens >= BET_AMOUNT) spinBtn.setInteractive();
+        window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: tokens }));
+      }
     }
   </script>
 </body>
 </html>
-      `.trim();
+        `.trim()
 
-      setHtml(htmlContent);
-    })();
-  }, []);
+        setHtml(htmlContent)
+      } catch (err) {
+        console.error('SlotGameWebView useEffect error', err)
+        Alert.alert('Erreur', err.message)
+        setHtml(`<html><body><h1>Erreur de chargement</h1></body></html>`)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
 
-  if (!html) {
+  // Gère navigation “goBack” et mise à jour du solde
+  const handleMessage = async ({ nativeEvent }) => {
+    try {
+      const data = JSON.parse(nativeEvent.data)
+      if (data.action === 'goBack') {
+        router.replace('/')
+        return
+      }
+      const { newBalance } = data
+      const user = auth.currentUser
+      if (user) {
+        await updateDoc(doc(db, 'Users', user.uid), { walletBalance: newBalance })
+      }
+    } catch (e) {
+      console.error('update balance error', e)
+    }
+  }
+
+  if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#e94560" />
       </View>
-    );
+    )
   }
 
   return (
-    <WebView
-      originWhitelist={['*']}
-      source={{ html }}
-      javaScriptEnabled
-      domStorageEnabled
-      style={styles.webview}
-    />
-  );
+    <View style={styles.container}>
+      <WebView
+        originWhitelist={['*']}
+        source={{ html }}
+        javaScriptEnabled
+        domStorageEnabled
+        onMessage={handleMessage}
+        onError={({ nativeEvent }) => {
+          console.error('WebView error:', nativeEvent)
+          Alert.alert('Erreur WebView', nativeEvent.description)
+        }}
+        style={styles.webview}
+      />
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  loader: { flex:1, justifyContent:'center', alignItems:'center' },
-  webview: { flex:1 },
-});
+  container: {
+    flex: 1,
+    backgroundColor: '#000'
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000'
+  },
+  webview: {
+    flex: 1
+  }
+})
