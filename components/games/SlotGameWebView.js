@@ -313,7 +313,6 @@ const PAYLINES= [
   [2, 2, 2, 2, 2]
 ];
 
-
 export default function SlotGameWebView() {
   const router = useRouter()
   const [html, setHtml]       = useState('')
@@ -379,7 +378,7 @@ export default function SlotGameWebView() {
   <script>
     // bet options and lines mapping
     const BET_OPTIONS = [10,20,50,100];
-    const PAYLINE_COUNTS = {10:10,20:20,50:35,100:50};
+    const PAYLINE_COUNTS = {10:5,20:15,50:35,100:243};
     let currentBet = BET_OPTIONS[0];
     let activeLineCount = PAYLINE_COUNTS[currentBet];
 
@@ -392,12 +391,12 @@ export default function SlotGameWebView() {
       orange:  {3:10, 4:40, 5:80},
       plum:    {3:10, 4:40, 5:80},
       bell:    {3:20, 4:100, 5:200},
-      seven:   {3:20, 4:100, 5:150},
-      diamond: {3:50, 4:250,5:500},
+      diamond: {3:20, 4:100,5:200},
+      seven:   {3:50, 4:250, 5:500},
       // bar est wild et ne paie pas seul
     };
     const PAYLINES = ${JSON.stringify(PAYLINES)};
-    const WEIGHTS = { bar:1, diamond:1, seven:2, bell:3, cherry:5, lemon:5, orange:5, plum:5 };
+    const WEIGHTS = { bar:2, diamond:3, seven:1, bell:3, cherry:5, lemon:5, orange:5, plum:5 };
     const weighted = [];
     Object.entries(WEIGHTS).forEach(([s,w])=>{
       for(let i=0;i<w;i++) weighted.push(s);
@@ -427,10 +426,10 @@ export default function SlotGameWebView() {
     function create(){
       const { width, height } = this.scale;
       // display balance
-      tokenText = this.add.text(width-20,20,'Jetons: '+tokens,{font:'40px Arial',fill:'#fff'})
+      tokenText = this.add.text(width-60,20,'Jetons: '+tokens,{font:'40px Arial',fill:'#f70000'})
         .setOrigin(1,0).setDepth(10);
       // display current bet
-      betText = this.add.text(width-20,60,'Bet: '+currentBet,{font:'32px Arial',fill:'#fff'})
+      betText = this.add.text(width-60,60,'Bet: '+currentBet,{font:'32px Arial',fill:'#f70000'})
         .setOrigin(1,0).setDepth(10);
 
       // Ajoute bouton “Retour” en haut à gauche
@@ -451,13 +450,18 @@ export default function SlotGameWebView() {
       reels = []; winGraphics=[]; winTotalText=null;
 
       const startX = width/2 - 2*spacingX;
-      for(let i=0;i<5;i++){
-        const c = this.add.container(startX+i*spacingX, height/2);
-        for(let r=0;r<visibleRows;r++){
-          const y=(r-1)*symbolSize;
-          c.add(this.add.image(0,y,getRandomSymbol()).setDisplaySize(symbolSize,symbolSize));
+      for (let i = 0; i < 5; i++) {
+        const c = this.add.container(startX + i * spacingX, height / 2);
+        for (let r = 0; r < visibleRows; r++) {
+          const y = (r - 1) * symbolSize;
+          // on remplace getRandomSymbol() par 'diamond'
+          c.add(
+            this.add
+              .image(0, y, 'seven')
+              .setDisplaySize(symbolSize, symbolSize)
+          );
         }
-        c.initialYs = c.list.map(ch=>ch.y);
+        c.initialYs = c.list.map(ch => ch.y);
         reels.push(c);
       }
       this.add.image(width/2, height/2,'frame').setDisplaySize(width, height);
