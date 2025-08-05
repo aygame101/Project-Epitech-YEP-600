@@ -1,5 +1,6 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+
 admin.initializeApp();
 
 const ERROR_MESSAGES = {
@@ -8,7 +9,7 @@ const ERROR_MESSAGES = {
   USER_NOT_FOUND: 'Utilisateur non trouvé.'
 };
 
-exports.claimDailyBonus = functions.https.onCall(async (data, context) => {
+export const claimDailyBonus = functions.https.onCall(async (data: any, context: functions.CallableContext) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', ERROR_MESSAGES.UNAUTHENTICATED);
   }
@@ -32,18 +33,14 @@ exports.claimDailyBonus = functions.https.onCall(async (data, context) => {
 
     if (currentTime - lastClaimedAt >= ONE_DAY_MS) {
       const newCurrency = (typeof userData.currency === 'number' ? userData.currency : 0) + BONUS_AMOUNT;
-
-      // On écrit d'abord le timestamp du serveur, puis on lit la vraie valeur
       await userRef.update({
         lastDailyBonusClaimedAt: admin.database.ServerValue.TIMESTAMP,
         currency: newCurrency
       });
-
       return { status: 'success', message: `Bonus de ${BONUS_AMOUNT} réclamé !` };
     } else {
       const timeRemaining = (lastClaimedAt + ONE_DAY_MS) - currentTime;
       const hoursRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60));
-
       return {
         status: 'failure',
         message: `Revenez dans ${hoursRemaining} heure(s) pour votre prochain bonus.`

@@ -33,7 +33,7 @@ export const realtimeDb = getDatabase(getApps()[0]);
 export const functions = getFunctions(getApps()[0]);
 
 // Fonction pour vérifier le statut du bonus quotidien dans Realtime Database
-export function listenDailyBonusStatus(userId: string, callback: (status: { canClaim: boolean; hoursRemaining: number }) => void) {
+export function listenDailyBonusStatus(userId, callback) {
   const userBonusRef = ref(realtimeDb, `users/${userId}/lastDailyBonusClaimedAt`);
   onValue(userBonusRef, (snapshot) => {
     const lastClaimedAt = snapshot.val() || 0;
@@ -63,8 +63,8 @@ export async function handleClaimButtonClick() {
   }
 }
 
-
-export async function saveUserProfile(userId: string, profileData: any) {
+// Fonction pour sauvegarder le profil utilisateur
+export async function saveUserProfile(userId, profileData) {
   try {
     await setDoc(doc(db, "users", userId), profileData);
     console.log("Profil utilisateur sauvegardé avec succès !");
@@ -74,8 +74,8 @@ export async function saveUserProfile(userId: string, profileData: any) {
   }
 }
 
-
-export async function getUserProfile(userId: string) {
+// Fonction pour récupérer le profil utilisateur
+export async function getUserProfile(userId) {
   try {
     const docRef = doc(db, "users", userId);
     const docSnap = await getDoc(docRef);
