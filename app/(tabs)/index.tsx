@@ -16,7 +16,7 @@ import { signOut } from 'firebase/auth'
 const games = [
   { label: '🤑 Slots',    screen: 'defslot' },
   // { label: '🎡 Roulette', screen: 'Roulette' },
-  // { label: '🃏 Blackjack',screen: 'Blackjack' },
+  { label: '🃏 Blackjack',screen: 'blackjack' },
 ]
 
 export default function GameSelection() {
