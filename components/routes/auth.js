@@ -24,6 +24,8 @@ import {
   getDoc
 } from 'firebase/firestore'
 
+import { Dimensions } from 'react-native'
+
 export const Auth = () => {
   const router = useRouter()
   const [isSignup, setIsSignup] = useState(false)
@@ -189,13 +191,17 @@ export const Auth = () => {
   )
 }
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
+
 const styles = StyleSheet.create({
   container: {
     flex:           1,
     justifyContent: 'center',
     alignItems:     'center',
-    padding:        30,
-    backgroundColor:'#1a1a2e'
+    paddingHorizontal: 30,
+    backgroundColor:'#1a1a2e',
+    width: screenWidth,
+    height: screenHeight
   },
   title: {
     fontSize:     28,
