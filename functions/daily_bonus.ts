@@ -1,4 +1,5 @@
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
@@ -9,12 +10,12 @@ const ERROR_MESSAGES = {
   USER_NOT_FOUND: 'Utilisateur non trouvé.'
 };
 
-export const claimDailyBonus = functions.https.onCall(async (data: any, context: functions.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', ERROR_MESSAGES.UNAUTHENTICATED);
+export const claimDailyBonus = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', ERROR_MESSAGES.UNAUTHENTICATED);
   }
 
-  const userId = context.auth.uid;
+  const userId = request.auth.uid;
   const db = admin.database();
   const userRef = db.ref(`users/${userId}`);
 
@@ -23,7 +24,7 @@ export const claimDailyBonus = functions.https.onCall(async (data: any, context:
     const userData = userSnapshot.val();
 
     if (!userData) {
-      throw new functions.https.HttpsError('not-found', ERROR_MESSAGES.USER_NOT_FOUND);
+      throw new HttpsError('not-found', ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     const lastClaimedAt = typeof userData.lastDailyBonusClaimedAt === 'number' ? userData.lastDailyBonusClaimedAt : 0;
@@ -47,7 +48,33 @@ export const claimDailyBonus = functions.https.onCall(async (data: any, context:
       };
     }
   } catch (error) {
-    console.error("Erreur lors de la réclamation du bonus:", error);
-    throw new functions.https.HttpsError('internal', ERROR_MESSAGES.INTERNAL_ERROR);
+    logger.error("Erreur lors de la réclamation du bonus:", error);
+    throw new HttpsError('internal', ERROR_MESSAGES.INTERNAL_ERROR);
   }
 });
+
+export const listenDailyBonusStatus = (userId, callback) => {
+  if (!userId) {
+    throw new Error("User ID is required");
+  }
+
+  const db = admin.database();
+  const userRef = db.ref(`users/${userId}/lastDailyBonusClaimedAt`);
+
+  const listener = userRef.on('value', (snapshot) => {
+    const lastClaimedAt = snapshot.val() || 0;
+    const currentTime = Date.now();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+    const canClaim = currentTime - lastClaimedAt >= ONE_DAY_MS;
+    const timeRemaining = canClaim ? 0 : (lastClaimedAt + ONE_DAY_MS) - currentTime;
+    const hoursRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60));
+
+    callback({ canClaim, hoursRemaining });
+  });
+
+  // Return a function to unsubscribe from the listener
+  return () => {
+    userRef.off('value', listener);
+  };
+};

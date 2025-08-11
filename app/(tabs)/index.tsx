@@ -1,85 +1,83 @@
-// app/(tabs)/select_game.tsx
-
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator
-} from 'react-native'
-import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native'
-import { auth, db } from '../../config/firebaseConfig'
-import { doc, getDoc } from 'firebase/firestore'
-import { signOut } from 'firebase/auth'
+} from 'react-native';
+import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
+import { auth, db } from '../../config/firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import DailyBonusComponent from '../../components/DailyBonusComponent'; // Assure-toi que le chemin est correct
 
 const games = [
-  { label: '🤑 Slots',    screen: 'defslot' },
-  // { label: '🎡 Roulette', screen: 'Roulette' },
-  // { label: '🃏 Blackjack',screen: 'Blackjack' },
-]
+  { label: '🤑 Slots', screen: 'defslot' },
+  // Ajoute d'autres jeux ici
+];
 
 export default function GameSelection() {
-  const navigation = useNavigation()
-  const [loading, setLoading]             = useState(true)
-  const [userName, setUserName]           = useState('')
-  const [walletBalance, setWalletBalance] = useState(0)
+  const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
+  const [walletBalance, setWalletBalance] = useState(0);
 
-  const loadProfile = async () => {
-    const user = auth.currentUser
+  const loadProfile = useCallback(async () => {
+    const user = auth.currentUser;
     if (!user) {
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: 'loginScreen' }],
         })
-      )
-      return
+      );
+      return;
     }
+
     try {
-      const snap = await getDoc(doc(db, 'Users', user.uid))
+      const snap = await getDoc(doc(db, 'Users', user.uid));
       if (snap.exists()) {
-        const data = snap.data()
-        setUserName(data.userName || '')
-        setWalletBalance(data.walletBalance || 0)
+        const data = snap.data();
+        setUserName(data.userName || '');
+        setWalletBalance(data.walletBalance || 0);
       } else {
-        console.warn('Profil introuvable pour', user.uid)
+        console.warn('Profil introuvable pour', user.uid);
       }
     } catch (e) {
-      console.error('Erreur lecture profil', e)
+      console.error('Erreur lecture profil', e);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, [navigation]);
 
-  // Re-charge le profil à chaque fois que cet écran est focalisé
   useFocusEffect(
     useCallback(() => {
-      setLoading(true)
-      loadProfile()
-    }, [])
-  )
+      setLoading(true);
+      loadProfile();
+    }, [loadProfile])
+  );
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      await signOut(auth)
+      await signOut(auth);
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: 'loginScreen' }],
         })
-      )
+      );
     } catch (e) {
-      console.error('Erreur de déconnexion', e)
+      console.error('Erreur de déconnexion', e);
     }
-  }
+  }, [navigation]);
 
   if (loading) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color="#e94560" />
       </View>
-    )
+    );
   }
 
   return (
@@ -90,88 +88,85 @@ export default function GameSelection() {
       <Text style={styles.balance}>
         Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
       </Text>
-
+      <DailyBonusComponent />
       <Text style={styles.title}>Choisis ton jeu</Text>
       {games.map((g) => (
         <TouchableOpacity
           key={g.screen}
           style={styles.button}
-          onPress={() =>
-            navigation.navigate(g.screen as never)
-          }
+          onPress={() => navigation.navigate(g.screen as never)}
         >
           <Text style={styles.buttonText}>{g.label}</Text>
         </TouchableOpacity>
       ))}
-
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   loader: {
-    flex:           1,
+    flex: 1,
     justifyContent: 'center',
-    alignItems:     'center',
-    backgroundColor:'#1a1a2e'
+    alignItems: 'center',
+    backgroundColor: '#1a1a2e',
   },
   container: {
-    flex:           1,
+    flex: 1,
     justifyContent: 'flex-start',
-    alignItems:     'center',
-    backgroundColor:'#1a1a2e',
-    padding:        20,
-    paddingTop:     60,
+    alignItems: 'center',
+    backgroundColor: '#1a1a2e',
+    padding: 20,
+    paddingTop: 60,
   },
   greeting: {
-    fontSize:     24,
-    color:        '#fff',
+    fontSize: 24,
+    color: '#fff',
     marginBottom: 4,
   },
   balance: {
-    fontSize:     18,
-    color:        '#ccc',
+    fontSize: 18,
+    color: '#ccc',
     marginBottom: 20,
   },
   highlight: {
-    color:      '#e94560',
+    color: '#e94560',
     fontWeight: 'bold',
   },
   title: {
-    fontSize:     32,
+    fontSize: 32,
     marginBottom: 30,
-    color:        '#e94560',
-    fontWeight:   'bold',
-    textAlign:    'center',
+    color: '#e94560',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   button: {
-    width:           '80%',
+    width: '80%',
     paddingVertical: 15,
     marginVertical: 10,
-    borderRadius:    30,
+    borderRadius: 30,
     backgroundColor: 'rgba(233, 69, 96, 0.9)',
-    justifyContent:  'center',
-    alignItems:      'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonText: {
-    color:      '#fff',
-    fontSize:   18,
+    color: '#fff',
+    fontSize: 18,
     fontWeight: '600',
   },
   logoutButton: {
-    marginTop:        40,
-    borderWidth:      1,
-    borderColor:      '#e94560',
-    paddingVertical:  12,
-    paddingHorizontal:30,
-    borderRadius:     25,
+    marginTop: 40,
+    borderWidth: 1,
+    borderColor: '#e94560',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
   },
   logoutText: {
-    color:      '#e94560',
-    fontSize:   16,
+    color: '#e94560',
+    fontSize: 16,
     fontWeight: '600',
   },
-})
+});

@@ -32,27 +32,43 @@ export const db = getFirestore();
 export const realtimeDb = getDatabase(getApps()[0]);
 export const functions = getFunctions(getApps()[0]);
 
-// Fonction pour vérifier le statut du bonus quotidien dans Realtime Database
+// Fonction pour écouter le statut du bonus quotidien
 export function listenDailyBonusStatus(userId, callback) {
+  if (!userId) return () => {}; // Retourne une fonction vide si userId n'est pas fourni
+
   const userBonusRef = ref(realtimeDb, `users/${userId}/lastDailyBonusClaimedAt`);
-  onValue(userBonusRef, (snapshot) => {
+
+  // Écoute les changements de valeur
+  const unsubscribe = onValue(userBonusRef, (snapshot) => {
     const lastClaimedAt = snapshot.val() || 0;
     const currentTime = Date.now();
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    let canClaim = false;
+    let hoursRemaining = 0;
+
     if (currentTime - lastClaimedAt >= ONE_DAY_MS) {
-      callback({ canClaim: true, hoursRemaining: 0 });
+      canClaim = true;
+      hoursRemaining = 0;
     } else {
+      canClaim = false;
       const timeRemaining = (lastClaimedAt + ONE_DAY_MS) - currentTime;
-      const hoursRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60));
-      callback({ canClaim: false, hoursRemaining });
+      hoursRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60));
     }
+
+    callback({ canClaim, hoursRemaining });
   });
+
+  // Retourne une fonction pour se désabonner
+  return () => {
+    off(userBonusRef, 'value', unsubscribe);
+  };
 }
+
 
 // Callable pour réclamer le bonus
 export const claimBonusCallable = httpsCallable(functions, 'claimDailyBonus');
 
-// Fonction utilitaire pour réclamer le bonus
+// Fonction utilitaire pour réclamer le bonus quotidien
 export async function handleClaimButtonClick() {
   try {
     const result = await claimBonusCallable();
