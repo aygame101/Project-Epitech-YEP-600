@@ -21,10 +21,14 @@ import {
   runTransaction
 } from 'firebase/firestore'
 
+
 // Normalise le pseudo pour les IDs de doc
 const normalizeUsername = (s) => s.trim().toLowerCase()
 // Règle simple de validation: 3–20 chars a-z 0-9 _
 const isValidUsername = (s) => /^[a-z0-9_]{3,20}$/.test(s)
+
+import { Dimensions } from 'react-native'
+
 
 export const Auth = () => {
   const router = useRouter()
@@ -224,13 +228,19 @@ export const Auth = () => {
   )
 }
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: '#1a1a2e'
+
+    alignItems:     'center',
+    paddingHorizontal: 30,
+    backgroundColor:'#1a1a2e',
+    width: screenWidth,
+    height: screenHeight
+
   },
   title: {
     fontSize: 28,
