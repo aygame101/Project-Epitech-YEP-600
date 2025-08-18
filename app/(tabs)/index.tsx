@@ -1,83 +1,90 @@
-import React, { useState, useCallback } from 'react';
+// app/(tabs)/index.tsx
+import React, { useState, useCallback } from 'react'
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator
-} from 'react-native';
-import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
-import { auth, db } from '../../config/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
-import DailyBonusComponent from '../../components/DailyBonusComponent'; // Assure-toi que le chemin est correct
+} from 'react-native'
+import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native'
+import { auth, db } from '../../config/firebaseConfig'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { signOut } from 'firebase/auth'
+import DailyBonusComponent from '../../components/DailyBonusComponent' // vérifie bien le nom du fichier
 
 const games = [
   { label: '🤑 Slots', screen: 'defslot' },
   // Ajoute d'autres jeux ici
-];
+]
 
 export default function GameSelection() {
-  const navigation = useNavigation();
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('');
-  const [walletBalance, setWalletBalance] = useState(0);
+  const navigation = useNavigation()
+  const [loading, setLoading] = useState(true)
+  const [userName, setUserName] = useState('')
+  const [walletBalance, setWalletBalance] = useState(0)
 
-  const loadProfile = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: 'loginScreen' }],
-        })
-      );
-      return;
-    }
-
-    try {
-      const snap = await getDoc(doc(db, 'Users', user.uid));
-      if (snap.exists()) {
-        const data = snap.data();
-        setUserName(data.userName || '');
-        setWalletBalance(data.walletBalance || 0);
-      } else {
-        console.warn('Profil introuvable pour', user.uid);
-      }
-    } catch (e) {
-      console.error('Erreur lecture profil', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [navigation]);
-
+  // Abonnement en temps réel au doc Users/{uid} pendant que l'écran est focus
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      loadProfile();
-    }, [loadProfile])
-  );
+      const user = auth.currentUser
+      if (!user) {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'loginScreen' }],
+          })
+        )
+        return
+      }
+
+      setLoading(true)
+      const ref = doc(db, 'Users', user.uid)
+      const unsubscribe = onSnapshot(
+        ref,
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data() as any
+            setUserName(data.userName || '')
+            setWalletBalance(data.walletBalance ?? 0)
+          } else {
+            // Doc supprimé / introuvable
+            setUserName('')
+            setWalletBalance(0)
+          }
+          setLoading(false)
+        },
+        (err) => {
+          console.error('Erreur onSnapshot profil', err)
+          setLoading(false)
+        }
+      )
+
+      // Cleanup quand on quitte l'écran
+      return () => unsubscribe()
+    }, [navigation])
+  )
 
   const handleLogout = useCallback(async () => {
     try {
-      await signOut(auth);
+      await signOut(auth)
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: 'loginScreen' }],
         })
-      );
+      )
     } catch (e) {
-      console.error('Erreur de déconnexion', e);
+      console.error('Erreur de déconnexion', e)
     }
-  }, [navigation]);
+  }, [navigation])
 
   if (loading) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color="#e94560" />
       </View>
-    );
+    )
   }
 
   return (
@@ -88,7 +95,9 @@ export default function GameSelection() {
       <Text style={styles.balance}>
         Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
       </Text>
+
       <DailyBonusComponent />
+
       <Text style={styles.title}>Choisis ton jeu</Text>
       {games.map((g) => (
         <TouchableOpacity
@@ -103,7 +112,7 @@ export default function GameSelection() {
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -169,4 +178,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-});
+})
