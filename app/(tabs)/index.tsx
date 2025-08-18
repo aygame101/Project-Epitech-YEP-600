@@ -14,8 +14,9 @@ import { signOut } from 'firebase/auth'
 import DailyBonusComponent from '../../components/DailyBonusComponent' // vérifie bien le nom du fichier
 
 const games = [
-  { label: '🤑 Slots', screen: 'defslot' },
-  // Ajoute d'autres jeux ici
+  { label: '🤑 Slots',    screen: 'defslot' },
+  // { label: '🎡 Roulette', screen: 'Roulette' },
+  // { label: '🃏 Blackjack',screen: 'Blackjack' },
 ]
 
 export default function GameSelection() {
