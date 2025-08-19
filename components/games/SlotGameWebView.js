@@ -437,10 +437,13 @@ export default function SlotGameWebView() {
 
     function spin(){
       if(tokens < currentBet) return;
-      if(winTotalText){ winTotalText.destroy(); winTotalText=null }
+      if(winTotalText){ winTotalText.destroy(); winTotalText = null }
       winGraphics.forEach(g=>g.destroy()); winGraphics=[];
 
+      // désactive les interactions pendant le spin
       spinBtn.disableInteractive();
+      backBtn.disableInteractive(); // ← NEW
+
       tokens -= currentBet;
       tokenText.setText('Jetons: '+tokens);
 
@@ -521,6 +524,7 @@ export default function SlotGameWebView() {
               ).setOrigin(0.5);
             }
             spinBtn.setInteractive(tokens >= currentBet);
+            backBtn.setInteractive();
             window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: tokens }));
           }
         });
@@ -528,6 +532,7 @@ export default function SlotGameWebView() {
 
       if(toPay.length===0){
         spinBtn.setInteractive(tokens >= currentBet);
+        backBtn.setInteractive();
         window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: tokens }));
       }
     }
