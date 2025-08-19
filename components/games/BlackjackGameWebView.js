@@ -165,13 +165,13 @@ export default function BlackjackGameWebView() {
                 font: '28px Arial', fill: '#fff'
             })
 
-            // Bouton retour
-            this.add.image(60, 60, 'backBtn')
-                .setDisplaySize(100, 100)
-                .setInteractive()
-                .on('pointerdown', () => {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'goBack' }))
-                })
+            // Bouton retour (garde une référence)
+            const backBtn = this.add.image(60, 60, 'backBtn')
+            .setDisplaySize(100, 100)
+            .setInteractive()
+            .on('pointerdown', () => {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'goBack' }))
+            })
 
             // Bouton mise
             const betBtn = this.add.image(width * 0.2, height * 0.9, 'bet')
@@ -219,6 +219,10 @@ export default function BlackjackGameWebView() {
             // démarre la distribution
             function startGame() {
                 if (!playBtn.active) return
+
+                backBtn.setVisible(false)
+                backBtn.disableInteractive()
+
                 playBtn.destroy()
                 betBtn.disableInteractive()
                 tokens -= currentBet
@@ -318,7 +322,14 @@ export default function BlackjackGameWebView() {
                 const replay = this.add.text(width / 2, height * 0.65, 'REJOUER', {
                     font: '32px Arial', fill: '#0f0', backgroundColor: '#000'
                 }).setOrigin(0.5).setPadding(8).setInteractive()
-                replay.on('pointerdown', () => this.scene.restart())
+                replay.on('pointerdown', () => {
+                // réactiver/montrer le bouton retour
+                backBtn.setVisible(true)
+                backBtn.setInteractive()
+
+                // relancer une manche propre
+                this.scene.restart()
+                })
 
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     newBalance: tokens
