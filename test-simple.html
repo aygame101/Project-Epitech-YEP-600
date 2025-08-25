@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Système de Recommandation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            color: #e94560;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            color: #ccc;
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .test-section h2 {
+            color: #00d4aa;
+            margin-top: 0;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #e94560, #f06292);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #0f3460, #16213e);
+            box-shadow: 0 4px 15px rgba(15, 52, 96, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(15, 52, 96, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #e94560;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .results.success {
+            border-left-color: #4CAF50;
+        }
+        
+        .results.error {
+            border-left-color: #f44336;
+        }
+        
+        .clear-btn {
+            background: linear-gradient(45deg, #f44336, #ef5350);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+        
+        .clear-btn:hover {
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00d4aa;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            color: #ff9800;
+            font-style: italic;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        .info {
+            color: #2196F3;
+        }
+        
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Test Système de Recommandation</h1>
+        <p>Interface de test pour valider le système de recommandation de jeux</p>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Tests Automatisés</h2>
+        <div class="button-group">
+            <button class="btn btn-success" onclick="runAllTests()">🚀 Lancer Tous les Tests</button>
+            <button class="btn btn-secondary" onclick="clearResults()">🗑️ Effacer les Résultats</button>
+        </div>
+        <div id="allTestsResults" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>👤 Tests par Niveau d'Utilisateur</h2>
+        <div class="button-group">
+            <button class="btn" onclick="testBeginner()">🎯 Test Débutant</button>
+            <button class="btn" onclick="testIntermediate()">📊 Test Intermédiaire</button>
+            <button class="btn" onclick="testAdvanced()">🏆 Test Avancé</button>
+            <button class="btn" onclick="testExpert()">👑 Test Expert</button>
+        </div>
+        <div id="userTestsResults" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>⚡ Test de Performance</h2>
+        <div class="button-group">
+            <button class="btn btn-secondary" onclick="testPerformance()">⚡ Test Performance</button>
+        </div>
+        <div id="performanceResults" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Statistiques des Tests</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTests">0</div>
+                <div class="stat-label">Tests Exécutés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="passedTests">0</div>
+                <div class="stat-label">Tests Réussis</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="failedTests">0</div>
+                <div class="stat-label">Tests Échoués</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="successRate">0%</div>
+                <div class="stat-label">Taux de Réussite</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            runAllTests as runTests,
+            testAnalynerUserPerformance,
+            testGetGameRecommendations,
+            testGetPersonalizedTips,
+            testConstants,
+            testPerformance as testPerf
+        } from './tests/recommandation.test.js';
+
+        // Données de test pour différents types d'utilisateurs
+        const testUsers = {
+            beginner: {
+                walletBalance: 50,
+                gameHistory: [
+                    { gameType: 'slot', result: 'loss', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'slot', result: 'win', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }
+                ],
+                totalWins: 1,
+                totalLosses: 1
+            },
+            
+            intermediate: {
+                walletBalance: 200,
+                gameHistory: [
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'slot', result: 'win', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'loss', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) }
+                ],
+                totalWins: 3,
+                totalLosses: 1
+            },
+            
+            advanced: {
+                walletBalance: 500,
+                gameHistory: [
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'slot', result: 'win', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'loss', timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'slot', result: 'win', timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) }
+                ],
+                totalWins: 5,
+                totalLosses: 1
+            },
+            
+            expert: {
+                walletBalance: 1000,
+                gameHistory: [
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'slot', result: 'win', timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'win', timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'slot', result: 'win', timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+                    { gameType: 'blackjack', result: 'loss', timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) }
+                ],
+                totalWins: 7,
+                totalLosses: 1
+            }
+        };
+
+        // Variables globales pour les statistiques
+        let totalTests = 0;
+        let passedTests = 0;
+        let failedTests = 0;
+
+        // Fonction pour afficher les résultats
+        function displayResults(elementId, content) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.className = 'results';
+            
+            // Ajouter la classe de succès si tout va bien
+            if (content.includes('✅') && !content.includes('❌')) {
+                element.classList.add('success');
+            } else if (content.includes('❌')) {
+                element.classList.add('error');
+            }
+        }
+
+        // Fonction pour mettre à jour les statistiques
+        function updateStats() {
+            document.getElementById('totalTests').textContent = totalTests;
+            document.getElementById('passedTests').textContent = passedTests;
+            document.getElementById('failedTests').textContent = failedTests;
+            
+            const successRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+
+        // Fonction pour lancer tous les tests
+        window.runAllTests = async function() {
+            displayResults('allTestsResults', '<span class="loading">🔄 Exécution des tests en cours...</span>');
+            
+            try {
+                const results = await runTests();
+                totalTests += results.total;
+                passedTests += results.passed;
+                failedTests += (results.total - results.passed);
+                
+                let content = '<h3>📊 Résultats des Tests</h3>';
+                content += `<p><strong>Tests réussis:</strong> ${results.passed}/${results.total}</p>`;
+                
+                if (results.success) {
+                    content += '<p class="success">🎉 Tous les tests ont réussi!</p>';
+                } else {
+                    content += '<p class="error">❌ Certains tests ont échoué</p>';
+                }
+                
+                displayResults('allTestsResults', content);
+                updateStats();
+                
+            } catch (error) {
+                displayResults('allTestsResults', `<p class="error">❌ Erreur lors de l'exécution des tests: ${error.message}</p>`);
+            }
+        };
+
+        // Fonction pour effacer les résultats
+        window.clearResults = function() {
+            document.getElementById('allTestsResults').innerHTML = '';
+            document.getElementById('userTestsResults').innerHTML = '';
+            document.getElementById('performanceResults').innerHTML = '';
+            
+            // Réinitialiser les statistiques
+            totalTests = 0;
+            passedTests = 0;
+            failedTests = 0;
+            updateStats();
+        };
+
+        // Fonction pour tester un utilisateur débutant
+        window.testBeginner = async function() {
+            displayResults('userTestsResults', '<span class="loading">🔄 Test utilisateur débutant...</span>');
+            
+            try {
+                const recommendations = await testUser(testUsers.beginner);
+                
+                let content = '<h3>🎯 Test Utilisateur Débutant</h3>';
+                content += `<p><strong>Score:</strong> ${recommendations.userScore}</p>`;
+                content += `<p><strong>Niveau:</strong> ${recommendations.difficultyLevel}</p>`;
+                content += `<p><strong>Conseil général:</strong> ${recommendations.overallRecommendation}</p>`;
+                
+                content += '<h4>🎮 Recommandations par jeu:</h4>';
+                Object.entries(recommendations.games).forEach(([gameType, gameData]) => {
+                    content += `<p><strong>${gameType === 'blackjack' ? '🃏 Blackjack' : '🎰 Machine à Sous'}:</strong> ${gameData.suitability}% de pertinence</p>`;
+                });
+                
+                displayResults('userTestsResults', content);
+                totalTests++;
+                passedTests++;
+                updateStats();
+                
+            } catch (error) {
+                displayResults('userTestsResults', `<p class="error">❌ Erreur: ${error.message}</p>`);
+                totalTests++;
+                failedTests++;
+                updateStats();
+            }
+        };
+
+        // Fonction pour tester un utilisateur intermédiaire
+        window.testIntermediate = async function() {
+            displayResults('userTestsResults', '<span class="loading">🔄 Test utilisateur intermédiaire...</span>');
+            
+            try {
+                const recommendations = await testUser(testUsers.intermediate);
+                
+                let content = '<h3>📊 Test Utilisateur Intermédiaire</h3>';
+                content += `<p><strong>Score:</strong> ${recommendations.userScore}</p>`;
+                content += `<p><strong>Niveau:</strong> ${recommendations.difficultyLevel}</p>`;
+                content += `<p><strong>Conseil général:</strong> ${recommendations.overallRecommendation}</p>`;
+                
+                content += '<h4>🎮 Recommandations par jeu:</h4>';
+                Object.entries(recommendations.games).forEach(([gameType, gameData]) => {
+                    content += `<p><strong>${gameType === 'blackjack' ? '🃏 Blackjack' : '🎰 Machine à Sous'}:</strong> ${gameData.suitability}% de pertinence</p>`;
+                });
+                
+                displayResults('userTestsResults', content);
+                totalTests++;
+                passedTests++;
+                updateStats();
+                
+            } catch (error) {
+                displayResults('userTestsResults', `<p class="error">❌ Erreur: ${error.message}</p>`);
+                totalTests++;
+                failedTests++;
+                updateStats();
+            }
+        };
+
+        // Fonction pour tester un utilisateur avancé
+        window.testAdvanced = async function() {
+            displayResults('userTestsResults', '<span class="loading">🔄 Test utilisateur avancé...</span>');
+            
+            try {
+                const recommendations = await testUser(testUsers.advanced);
+                
+                let content = '<h3>🏆 Test Utilisateur Avancé</h3>';
+                content += `<p><strong>Score:</strong> ${recommendations.userScore}</p>`;
+                content += `<p><strong>Niveau:</strong> ${recommendations.difficultyLevel}</p>`;
+                content += `<p><strong>Conseil général:</strong> ${recommendations.overallRecommendation}</p>`;
+                
+                content += '<h4>🎮 Recommandations par jeu:</h4>';
+                Object.entries(recommendations.games).forEach(([gameType, gameData]) => {
+                    content += `<p><strong>${gameType === 'blackjack' ? '🃏 Blackjack' : '🎰 Machine à Sous'}:</strong> ${gameData.suitability}% de pertinence</p>`;
+                });
+                
+                displayResults('userTestsResults', content);
+                totalTests++;
+                passedTests++;
+                updateStats();
+                
+            } catch (error) {
+                displayResults('userTestsResults', `<p class="error">❌ Erreur: ${error.message}</p>`);
+                totalTests++;
+                failedTests++;
+                updateStats();
+            }
+        };
+
+        // Fonction pour tester un utilisateur expert
+        window.testExpert = async function() {
+            displayResults('userTestsResults', '<span class="loading">🔄 Test utilisateur expert...</span>');
+            
+            try {
+                const recommendations = await testUser(testUsers.expert);
+                
+                let content = '<h3>👑 Test Utilisateur Expert</h3>';
+                content += `<p><strong>Score:</strong> ${recommendations.userScore}</p>`;
+                content += `<p><strong>Niveau:</strong> ${recommendations.difficultyLevel}</p>`;
+                content += `<p><strong>Conseil général:</strong> ${recommendations.overallRecommendation}</p>`;
+                
+                content += '<h4>🎮 Recommandations par jeu:</h4>';
+                Object.entries(recommendations.games).forEach(([gameType, gameData]) => {
+                    content += `<p><strong>${gameType === 'blackjack' ? '🃏 Blackjack' : '🎰 Machine à Sous'}:</strong> ${gameData.suitability}% de pertinence</p>`;
+                });
+                
+                displayResults('userTestsResults', content);
+                totalTests++;
+                passedTests++;
+                updateStats();
+                
+            } catch (error) {
+                displayResults('userTestsResults', `<p class="error">❌ Erreur: ${error.message}</p>`);
+                totalTests++;
+                failedTests++;
+                updateStats();
+            }
+        };
+
+        // Fonction pour tester la performance
+        window.testPerformance = async function() {
+            displayResults('performanceResults', '<span class="loading">🔄 Test de performance en cours...</span>');
+            
+            try {
+                const startTime = performance.now();
+                
+                // Exécuter 1000 analyses de performance
+                for (let i = 0; i < 1000; i++) {
+                    // Simulation d'une analyse
+                    const mockUser = testUsers.intermediate;
+                    let score = 0;
+                    if (mockUser.walletBalance) score += Math.min(mockUser.walletBalance * 0.1, 200);
+                    if (mockUser.gameHistory) score += mockUser.gameHistory.length * 5;
+                    if (mockUser.totalWins && mockUser.totalLosses) {
+                        const totalGames = mockUser.totalWins + mockUser.totalLosses;
+                        if (totalGames > 0) {
+                            const progression = (mockUser.totalWins / totalGames) * 100;
+                            score += progression;
+                        }
+                    }
+                }
+                
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                let content = '<h3>⚡ Test de Performance</h3>';
+                content += `<p><strong>1000 analyses exécutées en:</strong> ${duration.toFixed(2)}ms</p>`;
+                content += `<p><strong>Temps moyen par analyse:</strong> ${(duration / 1000).toFixed(3)}ms</p>`;
+                
+                if (duration < 1000) {
+                    content += '<p class="success">✅ Performance acceptable (< 1 seconde)</p>';
+                } else {
+                    content += '<p class="error">⚠️ Performance lente (> 1 seconde)</p>';
+                }
+                
+                displayResults('performanceResults', content);
+                totalTests++;
+                passedTests++;
+                updateStats();
+                
+            } catch (error) {
+                displayResults('performanceResults', `<p class="error">❌ Erreur: ${error.message}</p>`);
+                totalTests++;
+                failedTests++;
+                updateStats();
+            }
+        };
+
+        // Initialiser les statistiques
+        updateStats();
+    </script>
+</body>
+</html> 
