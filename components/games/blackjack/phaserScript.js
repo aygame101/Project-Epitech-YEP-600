@@ -43,6 +43,11 @@ export const phaserScript = `
         return sum;
     }
 
+    function cardsToShort(hand) {
+        // ex: 'Ah', 'Td', 'Ks'...
+        return hand.map(c => c.rank + (c.suit ? c.suit[0] : '?'));
+    }
+
     new Phaser.Game({
         type: Phaser.AUTO,
         parent: 'game-container',
@@ -461,6 +466,35 @@ export const phaserScript = `
                 this.scene.restart();
             }, this);
 
+            // NEW: envoyer le résultat au RN pour scoreboard
+            const meta = {
+                mode: 'split',
+                split: true,
+                dealerValue: dealerVal,
+                dealerCards: cardsToShort(dealer),
+                left: {
+                    result: msgLeft,
+                    value: calcValue(leftHand),
+                    cards: cardsToShort(leftHand)
+                },
+                right: {
+                    result: msgRight,
+                    value: calcValue(rightHand),
+                    cards: cardsToShort(rightHand)
+                },
+                currentBet
+            };
+
+            // Wager = mise de 2 mains, payout = totalPayout (brut)
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'gameResult',
+                game: 'blackjack',
+                wager: currentBet * 2,
+                payout: totalPayout,
+                metadata: meta
+            }));
+
+            // Mise à jour du solde (comme avant)
             window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: tokens }));
         }
 
@@ -587,6 +621,25 @@ export const phaserScript = `
                 this.scene.restart();
             }, this);
 
+            // NEW: envoyer le résultat au RN pour scoreboard
+            const meta = {
+                mode: doubleActive ? 'double' : 'normal',
+                split: false,
+                result,
+                currentBet,
+                player: { value: calcValue(player), cards: cardsToShort(player) },
+                // dealer peut être partiellement défini si fin par bust/21 côté joueur
+                dealer: dealer && dealer.length ? { value: calcValue(dealer), cards: cardsToShort(dealer) } : null
+            };
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'gameResult',
+                game: 'blackjack',
+                wager: stake,
+                payout: payout,
+                metadata: meta
+            }));
+
+            // Mise à jour du solde (comme avant)
             window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: tokens }));
         }
     }

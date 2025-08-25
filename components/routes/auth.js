@@ -18,17 +18,12 @@ import {
   doc,
   setDoc,
   getDoc,
-  runTransaction
+  runTransaction,
+  serverTimestamp
 } from 'firebase/firestore'
 
-
-// Normalise le pseudo pour les IDs de doc
 const normalizeUsername = (s) => s.trim().toLowerCase()
-// Règle simple de validation: 3–20 chars a-z 0-9 _
 const isValidUsername = (s) => /^[a-z0-9_]{3,20}$/.test(s)
-
-import { Dimensions } from 'react-native'
-
 
 export const Auth = () => {
   const router = useRouter()
@@ -43,12 +38,11 @@ export const Auth = () => {
   const [userName, setUserName] = useState('')
   const [signPassword, setSignPassword] = useState('')
 
-  // --- LOGIN ---
   const handleLogin = async () => {
     try {
       let loginEmail = identifier.trim()
 
-      // Si ce n'est PAS un email -> on récupère l'email via le mapping Usernames/{usernameLower}
+      // Login par pseudo -> on retrouve l'email via Usernames/{usernameLower}
       if (!loginEmail.includes('@')) {
         const usernameLower = normalizeUsername(loginEmail)
         const mapSnap = await getDoc(doc(db, 'Usernames', usernameLower))
@@ -61,7 +55,7 @@ export const Auth = () => {
       // Auth Firebase
       const { user } = await signInWithEmailAndPassword(auth, loginEmail, loginPassword)
 
-      // (Rattrapage) S'assurer que le mapping existe pour les anciens comptes
+      // (Rattrapage) créer le mapping si absent pour anciens comptes
       try {
         const userSnap = await getDoc(doc(db, 'Users', user.uid))
         if (userSnap.exists()) {
@@ -79,9 +73,7 @@ export const Auth = () => {
             }
           }
         }
-      } catch (_) {
-        // best effort: ignorer les erreurs de rattrapage
-      }
+      } catch { }
 
       router.replace('/')
 
@@ -90,7 +82,6 @@ export const Auth = () => {
     }
   }
 
-  // --- SIGNUP ---
   const handleSignup = async () => {
     try {
       const usernameLower = normalizeUsername(userName)
@@ -108,7 +99,7 @@ export const Auth = () => {
         signPassword
       )
 
-      // Transaction pour réserver le pseudo (anti-doublon) + créer le profil
+      // Transaction : réserver le pseudo + créer Users/{uid} + créer player_stats/{uid}
       await runTransaction(db, async (tx) => {
         const unameRef = doc(db, 'Usernames', usernameLower)
         const unameSnap = await tx.get(unameRef)
@@ -116,14 +107,14 @@ export const Auth = () => {
           throw new Error('username-taken')
         }
 
-        // mapping public (doc-only get)
+        // Mapping public
         tx.set(unameRef, {
           uid: user.uid,
           email: email.trim(),
           usernameLower
         })
 
-        // profil propriétaire
+        // Profil privé
         const userRef = doc(db, 'Users', user.uid)
         tx.set(userRef, {
           email: email.trim(),
@@ -132,6 +123,22 @@ export const Auth = () => {
           userNameLower: usernameLower,
           walletBalance: 1000,
           lastDailyBonusClaimedAt: null
+        })
+
+        // >>> NEW: Doc d’agrégats pour le scoreboard
+        const statsRef = doc(db, 'player_stats', user.uid)
+        tx.set(statsRef, {
+          uid: user.uid,
+          userName: userName.trim(),
+          userNameLower: usernameLower,
+          gamesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          pushes: 0,
+          totalWagered: 0,
+          totalPayout: 0,
+          net: 0,
+          lastUpdated: serverTimestamp()
         })
       })
 
@@ -228,62 +235,16 @@ export const Auth = () => {
   )
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-
-    alignItems:     'center',
-    paddingHorizontal: 30,
-    backgroundColor:'#1a1a2e',
-    width: screenWidth,
-    height: screenHeight
-
-  },
-  title: {
-    fontSize: 28,
-    marginBottom: 30,
-    color: '#e94560',
-    fontWeight: 'bold',
-    textAlign: 'center'
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30, backgroundColor: '#1a1a2e' },
+  title: { fontSize: 28, marginBottom: 30, color: '#e94560', fontWeight: 'bold', textAlign: 'center' },
   input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-    color: '#fff',
-    fontSize: 16
+    width: '100%', height: 50, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 25, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)', marginBottom: 20, paddingHorizontal: 20, color: '#fff', fontSize: 16
   },
-  primaryButton: {
-    width: '100%',
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#e94560',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15
-  },
-  secondaryButton: {
-    width: '100%',
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#e94560',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600'
-  }
+  primaryButton: { width: '100%', height: 50, borderRadius: 25, backgroundColor: '#e94560', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  secondaryButton: { width: '100%', height: 50, borderRadius: 25, borderWidth: 1, borderColor: '#e94560', justifyContent: 'center', alignItems: 'center' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' }
 })
 
 export default Auth
