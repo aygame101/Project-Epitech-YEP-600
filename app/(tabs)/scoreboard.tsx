@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { listenWeeklyScoreboardTop } from '../../config/firebaseConfig'
+import { listenWeeklyScoreboardTop, listenScoreboardTop } from '../../config/firebaseConfig'
 
 type Row = {
     id: string
@@ -18,19 +18,28 @@ type Row = {
     totalPayout: number
 }
 
+type Mode = 'weekly' | 'global'
+
 export default function Scoreboard({ topN = 10 }: { topN?: number }) {
     const navigation = useNavigation()
     const [rows, setRows] = useState<Row[]>([])
     const [loading, setLoading] = useState(true)
+    const [mode, setMode] = useState<Mode>('weekly') // 'weekly' par défaut
 
     useEffect(() => {
+        setLoading(true)
         const onRows = (data: Row[]) => {
             setRows(data ?? [])
             setLoading(false)
         }
-        const unsub = listenWeeklyScoreboardTop(topN, onRows)
+
+        const unsub =
+            mode === 'weekly'
+                ? listenWeeklyScoreboardTop(topN, onRows)
+                : listenScoreboardTop(topN, onRows)
+
         return () => { if (typeof unsub === 'function') unsub() }
-    }, [topN])
+    }, [topN, mode])
 
     const renderItem = ({ item, index }: { item: Row; index: number }) => {
         const isTop3 = index < 3
@@ -59,10 +68,31 @@ export default function Scoreboard({ topN = 10 }: { topN?: number }) {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>
-                🏆 (Total Gagner)
-            </Text>
-            <Text style={styles.subtitle}>Actualisé en temps réel</Text>
+            {/* Titre centré */}
+            <Text style={styles.title}>🏆 {mode === 'weekly' ? 'Gains (Cette semaine)' : 'Gains (Global)'} </Text>
+
+            {/* Toggle Semaine / Toujours */}
+            <View style={styles.segment}>
+                <TouchableOpacity
+                    style={[styles.segmentBtn, mode === 'weekly' && styles.segmentBtnActive]}
+                    onPress={() => setMode('weekly')}
+                >
+                    <Text style={[styles.segmentText, mode === 'weekly' && styles.segmentTextActive]}>
+                        Cette semaine
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.segmentBtn, mode === 'global' && styles.segmentBtnActive]}
+                    onPress={() => setMode('global')}
+                >
+                    <Text style={[styles.segmentText, mode === 'global' && styles.segmentTextActive]}>
+                        Global
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Légende colonne droite (tu gardes ton indicateur actuel) */}
+            <Text style={{ color: '#ccc', marginBottom: 8 }}>(Total Gagné)</Text>
 
             <FlatList
                 style={{ alignSelf: 'stretch' }}
@@ -118,12 +148,38 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         color: '#ccc',
-        marginBottom: 20,
+        marginBottom: 14,
     },
-    highlight: {
+
+    // Toggle
+    segment: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: 'rgba(233,69,96,0.6)',
+        padding: 4,
+        marginBottom: 10,
+        gap: 6,
+    },
+    segmentBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 999,
+        backgroundColor: 'transparent',
+    },
+    segmentBtnActive: {
+        backgroundColor: 'rgba(233,69,96,0.15)',
+    },
+    segmentText: {
+        color: '#ccc',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    segmentTextActive: {
         color: '#e94560',
-        fontWeight: 'bold',
     },
+
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
