@@ -8,19 +8,11 @@ import {
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage'
 import {
   getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  onSnapshot,
-  runTransaction,
-  serverTimestamp,
-  increment,
-  Timestamp,
-  collection,
-  query,
-  orderBy,
-  limit as qLimit
+  doc, getDoc, setDoc, onSnapshot, runTransaction,
+  serverTimestamp, increment, Timestamp, collection, query, orderBy, limit as qLimit,
+  where, addDoc, updateDoc, getDocs, startAt, endAt, documentId
 } from 'firebase/firestore'
+
 
 /* ===== Helpers Paris week (reset dimanche 23:59 => lundi 00:00) ===== */
 function _lastSundayUTC(year, monthIndex0) {
@@ -279,4 +271,104 @@ export async function saveUserProfile(userId, profileData) {
 export async function getUserProfile(userId) {
   const snap = await getDoc(doc(db, 'Users', userId))
   return snap.exists() ? snap.data() : null
+}
+
+/* ==================== CHAT / USER DIRECTORY ==================== */
+
+// Id de conversation déterministe pour 1–1
+// Toujours un id + un ordre d'UIDs déterministes
+const normalizePair = (a, b) => {
+  const ids = [String(a), String(b)].sort()   // 👈 ordre stable
+  return { cid: ids.join('_'), ids }
+}
+export const conversationIdFor = (a, b) => normalizePair(a, b).cid
+
+export async function searchUsersByPrefix(prefix = '', limit = 20) {
+  const ref = collection(db, 'Usernames')
+  const start = prefix.trim().toLowerCase()
+  const end = start + '\uf8ff'
+  const q = query(
+    ref,
+    orderBy('usernameLower'),
+    startAt(start),
+    endAt(end),
+    qLimit(limit)
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => {
+    const data = d.data() || {}
+    return {
+      id: d.id,
+      usernameLower: d.id,
+      uid: data.uid,
+      displayName: data.displayName || d.id,
+      avatarUrl: data.avatarUrl || null
+    }
+  })
+}
+
+export async function getOrCreateConversation(myUid, other) {
+  const { cid, ids } = normalizePair(myUid, other.uid)
+  const cref = doc(db, 'conversations', cid)
+
+  // 1) create-or-merge SANS jamais lire avant
+  try {
+    await setDoc(cref, {
+      participantIds: ids,                    // 👈 ordre stable, identique pour les 2 côtés
+      participants: {
+        [myUid]: { displayName: 'You' },
+        [other.uid]: { displayName: other.displayName || other.usernameLower || 'Player' }
+      }
+    }, { merge: true })
+  } catch (e) {
+    // Si la conv existe avec l'ordre inverse, la règle bloque le changement → on ignore et on continue
+    console.warn('[chat] setDoc conv skipped:', e?.message)
+  }
+
+  // 2) méta autorisées
+  try {
+    await updateDoc(cref, { updatedAt: serverTimestamp() })
+  } catch { /* pas grave la 1ère fois */ }
+
+  return { cid }
+}
+
+export async function sendMessage({ cid, senderId, text }) {
+  const t = (text || '').slice(0, 2000)
+  const mref = collection(db, 'conversations', cid, 'messages')
+
+  await addDoc(mref, {
+    senderId,
+    type: 'text',
+    text: t,
+    createdAt: serverTimestamp()
+  })
+  await updateDoc(doc(db, 'conversations', cid), {
+    lastMessage: t.slice(0, 200),
+    lastMessageAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  })
+}
+
+// Ecoute des messages d'une conversation
+export function listenMessages(cid, callback) {
+  const ref = collection(db, 'conversations', cid, 'messages')
+  const q = query(ref, orderBy('createdAt', 'asc'), qLimit(200))
+  const unsub = onSnapshot(q, (snap) => {
+    const rows = []
+    snap.forEach(d => rows.push({ id: d.id, ...d.data() }))
+    callback(rows)
+  })
+  return unsub
+}
+
+// Marquer comme lu
+export async function markRead({ cid, uid }) {
+  const mref = doc(db, 'conversations', cid, 'members', uid)
+  const snap = await getDoc(mref)
+  if (!snap.exists()) {
+    await setDoc(mref, { lastReadAt: serverTimestamp() })
+  } else {
+    await updateDoc(mref, { lastReadAt: serverTimestamp() })
+  }
 }

@@ -111,7 +111,8 @@ export const Auth = () => {
         tx.set(unameRef, {
           uid: user.uid,
           email: email.trim(),
-          usernameLower
+          usernameLower,
+          displayName: userName.trim()
         })
 
         // Profil privé

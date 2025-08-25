@@ -8,10 +8,12 @@ import {
   ActivityIndicator
 } from 'react-native'
 import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native'
+import { useRouter } from 'expo-router'
 import { auth, db } from '../../config/firebaseConfig'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { signOut } from 'firebase/auth'
-import DailyBonusComponent from '../../components/services/DailyBonus' // vérifie bien le nom du fichier
+import DailyBonusComponent from '../../components/services/DailyBonus'
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 
 const games = [
   { label: '🤑 Slots',    screen: 'defslot' },
@@ -21,11 +23,11 @@ const games = [
 
 export default function GameSelection() {
   const navigation = useNavigation()
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState('')
   const [walletBalance, setWalletBalance] = useState(0)
 
-  // Abonnement en temps réel au doc Users/{uid} pendant que l'écran est focus
   useFocusEffect(
     useCallback(() => {
       const user = auth.currentUser
@@ -49,7 +51,6 @@ export default function GameSelection() {
             setUserName(data.userName || '')
             setWalletBalance(data.walletBalance ?? 0)
           } else {
-            // Doc supprimé / introuvable
             setUserName('')
             setWalletBalance(0)
           }
@@ -60,8 +61,6 @@ export default function GameSelection() {
           setLoading(false)
         }
       )
-
-      // Cleanup quand on quitte l'écran
       return () => unsubscribe()
     }, [navigation])
   )
@@ -89,11 +88,9 @@ export default function GameSelection() {
   }
 
   return (
-    <View style={styles.container}>
-
-      {/* En-tête à 3 colonnes : 🏆 | Bonjour... (centré) | spacer */}
-      <View style={styles.headerRow}>
-        {/* Colonne gauche : bouton 🏆 */}
+    <SafeAreaView style={styles.container}>
+      {/* --- Boutons flottants (absolus) : positionne-les plus bas avec ACTIONS_TOP_OFFSET --- */}
+      <View style={styles.actionsOverlay} pointerEvents="box-none">
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => navigation.navigate('scoreboard' as never)}
@@ -102,17 +99,21 @@ export default function GameSelection() {
           <Text style={styles.iconButtonText}>🏆</Text>
         </TouchableOpacity>
 
-        {/* Colonne centre : greeting toujours centré */}
-        <View style={styles.headerCenter}>
-          <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
-            Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
-          </Text>
-        </View>
-
-        {/* Colonne droite : spacer invisible de même largeur que le bouton */}
-        <View style={styles.iconSpacer} />
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => router.push('/chat')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.iconButtonText}>💬</Text>
+        </TouchableOpacity>
       </View>
 
+      {/* Titre centré */}
+      <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+        Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
+      </Text>
+
+      {/* Sous-titre centré */}
       <Text style={styles.balance}>
         Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
       </Text>
@@ -133,11 +134,13 @@ export default function GameSelection() {
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   )
 }
 
-const ICON_SIZE = 36
+const ICON_SIZE = 50
+// ➜ Ajuste cette valeur pour monter/descendre les deux boutons sans bouger le texte
+const ACTIONS_TOP_OFFSET = 68
 
 const styles = StyleSheet.create({
   loader: {
@@ -152,16 +155,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1a1a2e',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 20,
   },
 
-  // Header : rangée à 3 colonnes
-  headerRow: {
+  // --- Overlay absolu pour les deux boutons (gauche/droite) ---
+  actionsOverlay: {
+    position: 'absolute',
+    top: ACTIONS_TOP_OFFSET,
+    left: 20,
+    right: 20,
+    height: ICON_SIZE,
+    zIndex: 10,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    alignSelf: 'stretch',
-    marginBottom: 6,
   },
+
   iconButton: {
     width: ICON_SIZE,
     height: ICON_SIZE,
@@ -176,27 +185,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#e94560',
   },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  iconSpacer: {
-    width: ICON_SIZE,
-    height: ICON_SIZE,
-    opacity: 0, // invisible mais occupe la place
-  },
 
   greeting: {
     fontSize: 24,
     color: '#fff',
     textAlign: 'center',
+    alignSelf: 'stretch',
   },
   balance: {
     fontSize: 18,
     color: '#ccc',
     marginBottom: 20,
-    alignSelf: 'stretch',
     textAlign: 'center',
+    alignSelf: 'stretch',
   },
   highlight: {
     color: '#e94560',
