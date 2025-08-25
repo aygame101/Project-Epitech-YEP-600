@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { listenScoreboardTop } from '../../config/firebaseConfig'
+import { listenWeeklyScoreboardTop } from '../../config/firebaseConfig'
 
 type Row = {
     id: string
@@ -28,7 +28,7 @@ export default function Scoreboard({ topN = 10 }: { topN?: number }) {
             setRows(data ?? [])
             setLoading(false)
         }
-        const unsub = listenScoreboardTop(topN, onRows)
+        const unsub = listenWeeklyScoreboardTop(topN, onRows)
         return () => { if (typeof unsub === 'function') unsub() }
     }, [topN])
 
