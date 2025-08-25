@@ -65,7 +65,7 @@ export const phaserScript = `
     });
 
     function preload() {
-        this.load.spritesheet('cards', URL.createObjectURL(dataURItoBlob(CARDS_URI)), { frameWidth: 320, frameHeight: 528 });
+        this.load.spritesheet('cards', URL.createObjectURL(dataURItoBlob(CARDS_URI)), { frameWidth: 315, frameHeight: 519 });
         this.load.image('back', URL.createObjectURL(dataURItoBlob(BACK_URI)));
         this.load.image('hit', URL.createObjectURL(dataURItoBlob(HIT_URI)));
         this.load.image('stand', URL.createObjectURL(dataURItoBlob(STAND_URI)));

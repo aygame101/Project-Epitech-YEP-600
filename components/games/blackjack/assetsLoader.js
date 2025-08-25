@@ -4,8 +4,8 @@ import * as FileSystem from 'expo-file-system'
 export async function loadBlackjackAssets() {
     const modules = [
         require('../../../assets/games/blackjack/table-background.png'),
-        require('../../../assets/games/blackjack/cards_spritesheetX2.png'),
-        require('../../../assets/games/blackjack/red_backX2.png'),
+        require('../../../assets/games/blackjack/cards_spritesheet4096.png'),
+        require('../../../assets/games/blackjack/red_back315.png'),
         require('../../../assets/games/blackjack/button-hit.png'),
         require('../../../assets/games/blackjack/button-stand.png'),
         require('../../../assets/games/blackjack/bet-button.png'),
