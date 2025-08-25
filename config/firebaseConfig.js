@@ -168,7 +168,7 @@ export async function recordGameResult(
 /* ===== Scoreboard live ===== */
 export function listenScoreboardTop(topN = 10, callback) {
   const ref = collection(db, 'player_stats')
-  const q = query(ref, orderBy('net', 'desc'), qLimit(topN))
+  const q = query(ref, orderBy('totalPayout', 'desc'), qLimit(topN))
   const unsub = onSnapshot(q, (snap) => {
     const rows = []
     snap.forEach((d) => rows.push({ id: d.id, ...d.data() }))
