@@ -1,12 +1,7 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Pressable } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Auth } from '@/components/routes/auth';
+import { ThemedText } from '@/components/expo/ThemedText';
+import { ThemedView } from '@/components/expo/ThemedView';
+import { Auth } from '@/components/services/auth';
 
 function App() {
   return (

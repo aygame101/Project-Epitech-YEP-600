@@ -1,7 +1,7 @@
 // components/DailyBonusComponent.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, Alert, TouchableOpacity } from 'react-native'
-import { auth, listenDailyBonusStatus, claimDailyBonusClient } from '../config/firebaseConfig'
+import { auth, listenDailyBonusStatus, claimDailyBonusClient } from '../../config/firebaseConfig'
 
 const DailyBonusComponent = () => {
   const [bonusStatus, setBonusStatus] = useState({ canClaim: false, hoursRemaining: 0 })
