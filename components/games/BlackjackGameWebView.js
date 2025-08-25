@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { useRouter } from 'expo-router'
-import { auth, db } from '../../config/firebaseConfig'
+import { auth, db, recordGameResult } from '../../config/firebaseConfig'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { useFocusEffect } from '@react-navigation/native'
 
@@ -43,6 +43,21 @@ export default function BlackjackGameWebView() {
     const handleMessage = async ({ nativeEvent }) => {
         try {
             const data = JSON.parse(nativeEvent.data)
+
+            // NEW: résultat de jeu → scoreboard
+            if (data?.type === 'gameResult') {
+                const user = auth.currentUser
+                if (user) {
+                    await recordGameResult(user.uid, {
+                        game: data.game || 'blackjack',
+                        wager: Number(data.wager) || 0,
+                        payout: Number(data.payout) || 0,
+                        metadata: data.metadata || {}
+                    })
+                }
+                return
+            }
+
             if (data.action === 'goBack') {
                 router.replace('/')
             } else if (typeof data.newBalance === 'number') {
@@ -82,5 +97,5 @@ export default function BlackjackGameWebView() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#000' },
     loader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
-    webview: { flex: 1 },
+    webview: { flex: 1 }
 })

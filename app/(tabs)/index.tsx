@@ -90,9 +90,29 @@ export default function GameSelection() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.greeting}>
-        Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
-      </Text>
+
+      {/* En-tête à 3 colonnes : 🏆 | Bonjour... (centré) | spacer */}
+      <View style={styles.headerRow}>
+        {/* Colonne gauche : bouton 🏆 */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('scoreboard' as never)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.iconButtonText}>🏆</Text>
+        </TouchableOpacity>
+
+        {/* Colonne centre : greeting toujours centré */}
+        <View style={styles.headerCenter}>
+          <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+            Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
+          </Text>
+        </View>
+
+        {/* Colonne droite : spacer invisible de même largeur que le bouton */}
+        <View style={styles.iconSpacer} />
+      </View>
+
       <Text style={styles.balance}>
         Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
       </Text>
@@ -109,12 +129,15 @@ export default function GameSelection() {
           <Text style={styles.buttonText}>{g.label}</Text>
         </TouchableOpacity>
       ))}
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
     </View>
   )
 }
+
+const ICON_SIZE = 36
 
 const styles = StyleSheet.create({
   loader: {
@@ -131,15 +154,49 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
   },
+
+  // Header : rangée à 3 colonnes
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    marginBottom: 6,
+  },
+  iconButton: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    borderRadius: ICON_SIZE / 2,
+    backgroundColor: 'rgba(233, 69, 96, 0.15)',
+    borderWidth: 1,
+    borderColor: '#e94560',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconButtonText: {
+    fontSize: 18,
+    color: '#e94560',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  iconSpacer: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    opacity: 0, // invisible mais occupe la place
+  },
+
   greeting: {
     fontSize: 24,
     color: '#fff',
-    marginBottom: 4,
+    textAlign: 'center',
   },
   balance: {
     fontSize: 18,
     color: '#ccc',
     marginBottom: 20,
+    alignSelf: 'stretch',
+    textAlign: 'center',
   },
   highlight: {
     color: '#e94560',
