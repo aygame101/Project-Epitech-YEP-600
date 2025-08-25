@@ -11,7 +11,7 @@ import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/
 import { auth, db } from '../../config/firebaseConfig'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { signOut } from 'firebase/auth'
-import DailyBonusComponent from '../../components/DailyBonusComponent' // vérifie bien le nom du fichier
+import DailyBonusComponent from '../../components/services/DailyBonus' // vérifie bien le nom du fichier
 
 const games = [
   { label: '🤑 Slots',    screen: 'defslot' },
