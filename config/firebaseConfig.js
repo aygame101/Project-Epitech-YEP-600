@@ -68,6 +68,9 @@ const firebaseConfig = {
 // --- Init
 if (!getApps().length) initializeApp(firebaseConfig)
 
+import { setLogLevel } from 'firebase/firestore'
+setLogLevel('error')
+
 export const auth = initializeAuth(getApps()[0], {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 })

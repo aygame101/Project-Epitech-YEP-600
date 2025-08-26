@@ -535,9 +535,12 @@ export const phaserScript = `
                     this.time.delayedCall(500, draw, [], this);
                 } else {
                     const valP = calcValue(player);
-                    if (valD > 21 || valP > valD) endRound.call(this, 'win');
+                    if (valP > 21) { endRound.call(this, 'lose'); }
+                    else if (valD > 21) { endRound.call(this, 'win'); }
+                    else if (valP > valD) endRound.call(this, 'win');
                     else if (valP < valD) endRound.call(this, 'lose');
                     else endRound.call(this, 'push');
+
                 }
             }.bind(this);
             this.time.delayedCall(500, draw, [], this);
@@ -558,32 +561,46 @@ export const phaserScript = `
 
         standBtn.on('pointerdown', function () {
             if (splitActive) { standSplit.call(this); return; }
-            hideDouble(); canDouble = false;
 
+            hideDouble();
+            canDouble = false;
+
+            // Révéler la hole card du croupier
             if (dealerHoleSprite && dealerHoleCard) {
                 dealerHoleSprite.setTexture('cards', dealerHoleCard.frame);
             }
 
+            const playerFinal = calcValue(player);
+
             let valD = calcValue(dealer);
-            dealerValueText.setText('croupier: \\n' + valD);
-            if (valD === 21) { endRound.call(this, 'lose'); return; }
+            dealerValueText.setText('croupier: \n' + valD);
+
+            const resolve = () => {
+                const valP = playerFinal;
+
+                if (valP > 21) { endRound.call(this, 'lose'); return; }
+                if (valD > 21) { endRound.call(this, 'win'); return; }
+
+                if (valP > valD) endRound.call(this, 'win');
+                else if (valP < valD) endRound.call(this, 'lose');
+                else endRound.call(this, 'push');
+            };
+
             const draw = function () {
                 if (valD < 17) {
                     const c = deck.pop(); dealer.push(c);
                     const pos = getPos(dealer, dealer.length - 1, dealerY);
                     this.add.image(pos.x, pos.y, 'cards', c.frame).setScale(pos.scale);
                     valD = calcValue(dealer);
-                    dealerValueText.setText('croupier: \\n' + valD);
+                    dealerValueText.setText('croupier: \n' + valD);
                     this.time.delayedCall(500, draw, [], this);
                 } else {
-                    const valP = calcValue(player);
-                    if (valD > 21 || valP > valD) endRound.call(this, 'win');
-                    else if (valP < valD) endRound.call(this, 'lose');
-                    else endRound.call(this, 'push');
+                    resolve.call(this);
                 }
             }.bind(this);
             this.time.delayedCall(500, draw, [], this);
         }, this);
+
 
         function endRound(result) {
             hitBtn.disableInteractive();
