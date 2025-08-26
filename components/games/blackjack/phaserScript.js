@@ -570,14 +570,16 @@ export const phaserScript = `
                 dealerHoleSprite.setTexture('cards', dealerHoleCard.frame);
             }
 
+            // La valeur du joueur ne bougera plus après STAND
             const playerFinal = calcValue(player);
 
             let valD = calcValue(dealer);
-            dealerValueText.setText('croupier: \n' + valD);
+            dealerValueText.setText('croupier: \\n' + valD);
 
             const resolve = () => {
                 const valP = playerFinal;
 
+                // Vérifier les busts AVANT de comparer
                 if (valP > 21) { endRound.call(this, 'lose'); return; }
                 if (valD > 21) { endRound.call(this, 'win'); return; }
 
@@ -586,20 +588,22 @@ export const phaserScript = `
                 else endRound.call(this, 'push');
             };
 
-            const draw = function () {
+            const draw = () => {
                 if (valD < 17) {
                     const c = deck.pop(); dealer.push(c);
                     const pos = getPos(dealer, dealer.length - 1, dealerY);
                     this.add.image(pos.x, pos.y, 'cards', c.frame).setScale(pos.scale);
                     valD = calcValue(dealer);
-                    dealerValueText.setText('croupier: \n' + valD);
+                    dealerValueText.setText('croupier: \\n' + valD);
                     this.time.delayedCall(500, draw, [], this);
                 } else {
-                    resolve.call(this);
+                    resolve();
                 }
-            }.bind(this);
+            };
+
             this.time.delayedCall(500, draw, [], this);
         }, this);
+
 
 
         function endRound(result) {
