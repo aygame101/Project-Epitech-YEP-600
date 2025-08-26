@@ -6,8 +6,8 @@ const rouletteHtml = `
     </div>
     <!-- Solde et mise en haut à droite -->
     <div style="position:absolute;top:24px;right:24px;z-index:10;display:flex;flex-direction:column;align-items:flex-end;">
-      <div id="solde" style="background:#222a;color:#FFD700;padding:16px 32px;border-radius:14px;font-size:2rem;font-family:'Roboto Mono',monospace;margin-bottom:12px;box-shadow:0 2px 8px #0004;">Jetons : -- €</div>
-      <div id="mise" style="background:#222a;color:#FFD700;padding:16px 32px;border-radius:14px;font-size:1.6rem;font-family:'Roboto Mono',monospace;box-shadow:0 2px 8px #0004;">Mise : 0 €</div>
+      <div id="solde" style="background:#222a;color:#FFD700;padding:16px 32px;border-radius:14px;font-size:2rem;font-family:'Roboto Mono',monospace;margin-bottom:12px;box-shadow:0 2px 8px #0004;">Jetons : -- </div>
+      <div id="mise" style="background:#222a;color:#FFD700;padding:16px 32px;border-radius:14px;font-size:1.6rem;font-family:'Roboto Mono',monospace;box-shadow:0 2px 8px #0004;">Mise : 0 </div>
     </div>
     <div style="width: 98vw; max-width: 740px; min-width: 320px; height: 900px; position: absolute; top: 180px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; justify-content: flex-start; align-items: center;">
       <div id="phaser-roulette" style="width:540px;height:540px;"></div>
@@ -109,10 +109,10 @@ const rouletteHtml = `
             chip.style.width = '36px';
             chip.style.height = '36px';
             chip.style.borderRadius = '50%';
-            chip.style.backgroundColor = 
-              bet.amount === 1 ? '#fff' : 
-              bet.amount === 5 ? '#f44336' : 
-              bet.amount === 10 ? '#2196f3' : 
+            chip.style.backgroundColor =
+              bet.amount === 1 ? '#fff' :
+              bet.amount === 5 ? '#f44336' :
+              bet.amount === 10 ? '#2196f3' :
               bet.amount === 25 ? '#4caf50' : '#FFD700';
             chip.style.color = (bet.amount === 1) ? '#222' : '#fff';
             chip.style.display = 'flex';
@@ -174,26 +174,48 @@ const rouletteHtml = `
       function setSelectedChip(chip) {
         selectedChip = chip;
       }
-      
-      function spinRoulette() {
-        const winningNumber = Math.floor(Math.random()*37);
-        historique.push(winningNumber);
-        if(historique.length>20) historique = historique.slice(-20);
-        const gain = calcGain(winningNumber);
-        solde -= mise;
-        solde += gain;
-        lastBets = JSON.parse(JSON.stringify(bets));
-        
-        // Les jetons visuels seront nettoyés par clearBets
-        clearBets();
-        
-        // Envoi du nouveau solde à React Native
-        if (window.ReactNativeWebView) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({ newBalance: solde }));
-        }
-        
-        return { winningNumber, gain, solde };
+function spinRoulette() {
+  // Tirage aléatoire du numéro gagnant
+  const winningNumber = Math.floor(Math.random() * 37);
+
+  // Snapshot de la mise et des paris AVANT reset
+  const wager = mise;
+  const betsCopy = JSON.parse(JSON.stringify(bets));
+
+  // Historique court
+  historique.push(winningNumber);
+  if (historique.length > 20) historique = historique.slice(-20);
+
+  // Calcul du gain
+  const gain = calcGain(winningNumber);
+
+  // Mise à jour du solde local pour l’affichage WebView
+  solde -= wager;
+  solde += gain;
+
+  // Sauvegarde des mises pour "Répéter"
+  lastBets = JSON.parse(JSON.stringify(bets));
+
+  // Nettoyage visuel + état
+  clearBets();
+
+  // ✅ Envoi du résultat à React Native (pas de write direct Firestore ici)
+  if (window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      result: {
+        game: 'roulette',
+        wager: Number(wager) || 0,
+        payout: Number(gain) || 0,
+        winningNumber,
+        bets: betsCopy
       }
+    }));
+  }
+
+  // Retour programmatique si jamais utilisé par d'autres fonctions internes
+  return { winningNumber, gain, solde };
+}
+
       function calcGain(num) {
         let gain = 0;
         bets.forEach(b=>{
@@ -278,7 +300,7 @@ const rouletteHtml = `
           // Gain
           const gainP = document.createElement("p");
           gainP.className = "result-gain";
-          gainP.textContent = "Gain : " + result.gain + " €";
+          gainP.textContent = "Gain : " + result.gain + " ";
           gainP.style.color = result.gain > 0 ? "green" : "red";
           contentDiv.appendChild(gainP);
           
@@ -717,12 +739,12 @@ const rouletteHtml = `
 
         function renderChipsBar() {
           document.getElementById('chips-bar').innerHTML = CHIPS.map(v =>
-            '<div class="chip" style="width:80px;height:80px;border-radius:50%;background:'+(v===1?'#fff':v===5?'#f44336':v===10?'#2196f3':v===25?'#4caf50':'#FFD700')+';color:'+(v===1?'#222':'#fff')+';display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:2rem;cursor:pointer;border:4px solid #FFD700;box-shadow:0 2px 12px #0006;'+(selectedChip===v?'transform:scale(1.15);border-color:#fff;':'')+'" data-value="'+v+'">'+v+'€</div>'
+            '<div class="chip" style="width:80px;height:80px;border-radius:50%;background:'+(v===1?'#fff':v===5?'#f44336':v===10?'#2196f3':v===25?'#4caf50':'#FFD700')+';color:'+(v===1?'#222':'#fff')+';display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:2rem;cursor:pointer;border:4px solid #FFD700;box-shadow:0 2px 12px #0006;'+(selectedChip===v?'transform:scale(1.15);border-color:#fff;':'')+'" data-value="'+v+'">'+v+'</div>'
           ).join('');
         }
         function renderSoldeMise() {
-          document.getElementById('solde').textContent = 'Jetons : ' + solde + ' €';
-          document.getElementById('mise').textContent = 'Mise : ' + mise + ' €';
+          document.getElementById('solde').textContent = 'Jetons : ' + solde + ' ';
+          document.getElementById('mise').textContent = 'Mise : ' + mise + ' ';
         }
         document.addEventListener('DOMContentLoaded', () => {
           renderChipsBar();

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+// components/games/RouletteGameWebView.js
+import React, { useState, useCallback, useEffect } from 'react'
 import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { useRouter } from 'expo-router'
-import { auth, db } from '../../config/firebaseConfig.js'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { auth, db, recordGameResult } from '../../config/firebaseConfig'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import rouletteHtml from './roulette/phaser.html.js'
 
 export default function RouletteGameWebView() {
@@ -11,77 +12,75 @@ export default function RouletteGameWebView() {
   const [loading, setLoading] = useState(true)
   const [userBalance, setUserBalance] = useState(1000)
 
+  // ✅ on se met à jour en live sur Users/{uid} (comme l’index)
   useEffect(() => {
-    const fetchBalance = async () => {
-      const user = auth.currentUser
-      if (user) {
-        const userDoc = await getDoc(doc(db, 'Users', user.uid))
-        if (userDoc.exists()) {
-          setUserBalance(userDoc.data().walletBalance ?? 1000)
-        }
-      }
-    }
-    fetchBalance()
+    const user = auth.currentUser
+    if (!user) return
+    const ref = doc(db, 'Users', user.uid)
+    const unsub = onSnapshot(ref, (snap) => {
+      const bal = snap.exists() ? (snap.data().walletBalance ?? 0) : 0
+      setUserBalance(Number(bal) || 0)
+    })
+    return () => unsub && unsub()
   }, [])
 
-  const handleMessage = async ({ nativeEvent }) => {
+  const injectedBefore = `
+    // Solde initial visible très tôt
+    window.initialBalance = ${userBalance};
+    (function ensureInitial() {
+      const setIfReady = () => {
+        if (typeof setSolde === 'function') {
+          setSolde(window.initialBalance);
+          if (typeof renderSoldeMise === 'function') renderSoldeMise();
+        }
+      };
+      if (document.readyState === 'complete') setIfReady();
+      else window.addEventListener('load', setIfReady);
+    })();
+    true; // <- requis par react-native-webview
+  `
+
+  const onMessage = useCallback(async ({ nativeEvent }) => {
     try {
       const data = JSON.parse(nativeEvent.data)
+
       if (data.action === 'goBack') {
         router.replace('/')
-      } else if (typeof data.newBalance === 'number') {
+        return
+      }
+
+      // ✅ Réception d’un résultat de spin → écriture transactionnelle Firestore
+      if (data.result) {
         const user = auth.currentUser
-        if (user) {
-          await updateDoc(doc(db, 'Users', user.uid), { walletBalance: data.newBalance })
-          setUserBalance(data.newBalance)
+        if (!user) return
+        const {
+          game = 'roulette',
+          wager = 0,
+          payout = 0,
+          winningNumber,
+          bets
+        } = data.result
+
+        try {
+          await recordGameResult(user.uid, {
+            game,
+            wager,
+            payout,
+            metadata: {
+              winningNumber,
+              bets: Array.isArray(bets) ? bets.slice(0, 100) : [] // petite limite
+            }
+          })
+          // Pas de setState du solde ici: la souscription onSnapshot mettra l’UI à jour
+        } catch (e) {
+          console.error('recordGameResult error', e)
+          Alert.alert('Erreur', 'Enregistrement du résultat impossible.')
         }
       }
     } catch (e) {
       console.error(e)
     }
-  }
-
-  const injectedJS = `
-  // Définir le solde initial immédiatement après le chargement
-  window.initialBalance = ${ userBalance };
-
-  // Si solde est déjà défini, le mettre à jour
-  if (typeof solde !== 'undefined') {
-    solde = ${ userBalance };
-  }
-
-  // Mettre à jour l'affichage initial du solde avant que renderSoldeMise ne soit appelé
-  document.addEventListener('DOMContentLoaded', function () {
-    const soldeElement = document.getElementById('solde');
-    if (soldeElement) {
-      soldeElement.textContent = 'Solde : ' + ${ userBalance } + ' €';
-    }
-  });
-
-  // S'assurer que renderSoldeMise est appelé après le chargement complet
-  if (document.readyState === 'complete') {
-    if (typeof renderSoldeMise === 'function') {
-      renderSoldeMise();
-    }
-  } else {
-    window.addEventListener('load', function () {
-      if (typeof renderSoldeMise === 'function') {
-        renderSoldeMise();
-      }
-    });
-  }
-
-  // Ajouter un observateur pour surveiller les changements de DOM
-  // et s'assurer que le solde est toujours affiché correctement
-  setTimeout(function () {
-    if (typeof solde !== 'undefined') {
-      solde = ${ userBalance };
-      if (typeof renderSoldeMise === 'function') {
-        renderSoldeMise();
-      }
-    }
-  }, 1000);
-  `
+  }, [router])
 
   return (
     <View style={styles.container}>
@@ -97,9 +96,11 @@ export default function RouletteGameWebView() {
         onLoadEnd={() => setLoading(false)}
         javaScriptEnabled
         domStorageEnabled
-        injectedJavaScript={injectedJS}
-        onMessage={handleMessage}
-        onError={({ nativeEvent }) => Alert.alert('WebView erreur', nativeEvent.description)}
+        injectedJavaScriptBeforeContentLoaded={injectedBefore}
+        onMessage={onMessage}
+        onError={({ nativeEvent }) =>
+          Alert.alert('WebView erreur', nativeEvent.description)
+        }
       />
     </View>
   )
@@ -107,6 +108,9 @@ export default function RouletteGameWebView() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  loader: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', zIndex: 1 },
+  loader: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', zIndex: 1
+  },
   webview: { flex: 1 }
 })
