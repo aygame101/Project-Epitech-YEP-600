@@ -262,38 +262,31 @@ const rouletteHtml = `
                 return d;
             }
 
-            // Ordre exact utilisé pour dessiner la roue (européenne)
+            // Ordre Européen EXACT utilisé pour dessiner la roue
             const NUMBERS_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
 
-            // Centre du secteur gagnant (hors bande dorée) EN REPÈRE "ROUE"
+            // Centre du secteur (hors bande dorée) EN REPÈRE ROUE
             function sectorCenterRelAngle(index) {
                 const a0 = ((index / 37) * TAU) - Math.PI / 2;
                 const a1 = (((index + 1) / 37) * TAU) - Math.PI / 2;
-                const gold = (a1 - a0) * 0.08;         // ta bande dorée = 8%
+                const gold = (a1 - a0) * 0.08;   // bande dorée 8%
                 const mainStart = a0 + gold;
                 return mainStart + (a1 - mainStart) * 0.5;
             }
 
-            // ➜ décalage fixe entre "rotation du container bille" et "angle monde de la bille"
-            // (on le définira exactement au moment du draw et on s’en servira plus tard)
-            let BALL_OFFSET = -Math.PI / 2; // valeur par défaut (sera surchargée au create)
-
-
-            // Variables globales pour l'animation
+            // Variables d’anim
             let gameInstance = null;
             let isSpinning = false;
             let pendingResult = null;
-            // Variables de rotation minimales
-            let wheelRotation = 0;
-            let ballRotation = 0;
-            // Vitesses de rotation
-            let wheelSpeed = 0;
-            let ballSpeed = 0;
-            // Directions de rotation (1 = sens horaire, -1 = sens anti-horaire)
-            let wheelDirection = 1;
-            let ballDirection = -1; // Direction opposée à la roue
-            // Variable pour stocker l'angle final où la balle doit s'arrêter
-            let targetBallAngle = 0;
+
+            let wheelRotation = 0;     // rotation actuelle de la roue
+            let wheelSpeed = 0;        // vitesse (scalaire)
+            let wheelDirection = 1;    // 1 = horaire, -1 = anti-horaire
+            let targetWheelRotation = 0;
+
+            // Flèche : angle monde visé (top/12h = -PI/2 dans ton dessin)
+            const POINTER_WORLD_ANGLE = -Math.PI / 2;
+
 
             // Fonction pour afficher la fenêtre de résultat
             function displayResults(result) {
@@ -617,65 +610,93 @@ const rouletteHtml = `
                             // Ajouter le graphics au conteneur de la roue
                             this.wheelContainer.add(this.graphics);
 
-                            // Création du conteneur pour la balle
-                            this.ballContainer = this.add.container(cx, cy);
+                            // === Flèche fixe au-dessus de la roue (ne tourne PAS) ===
+                            const px = cx;
+                            const py = cy - rOuter - 6; // légèrement collée à la roue
 
-                            // Créer un objet graphique séparé pour la balle
-                            this.ballGraphics = this.add.graphics();
+                            this.pointer = this.add.graphics();
+                            this.pointer.fillStyle(0xFFD700, 1);
+                            this.pointer.lineStyle(4, 0x000000, 0.7);
 
-                            // Balle blanche
-                            let ballIndex = 0; // 0 = case 0
-                            let aBall = ((ballIndex / 37) * 2 * Math.PI) - Math.PI / 2;
-                            let rBall = (rOuter + rInner) / 2;
-                            let xBall = Math.cos(aBall) * rBall;
-                            let yBall = Math.sin(aBall) * rBall + 20;
+                            // ➜ flèche PLUS GROSSE
+                            const POINTER_W = 64;   // largeur du triangle (avant 24)
+                            const POINTER_H = 120;  // hauteur du triangle (avant ~28)
 
-                            BALL_OFFSET = aBall;
+                            // Pointe vers le bas, centrée sur (px, py)
+                            this.pointer.fillTriangle(
+                                px, py,                 // pointe
+                                px - POINTER_W / 2, py - POINTER_H,     // coin gauche
+                                px + POINTER_W / 2, py - POINTER_H      // coin droit
+                            );
+                            this.pointer.strokeTriangle(
+                                px, py,
+                                px - POINTER_W / 2, py - POINTER_H,
+                                px + POINTER_W / 2, py - POINTER_H
+                            );
 
-                            this.ballGraphics.fillStyle(0xffffff, 1);
-                            this.ballGraphics.fillCircle(xBall, yBall, 16);
-                            this.ballGraphics.lineStyle(2, 0xcccccc, 1);
-                            this.ballGraphics.strokeCircle(xBall, yBall, 16);
+                            // Petit “socle” sous la flèche (optionnel, pure déco)
+                            this.pointer.fillStyle(0xA67C00, 1);
+                            this.pointer.fillRect(px - 20, py - POINTER_H - 10, 40, 16);
 
-                            // Ajouter le graphics de la balle à son conteneur
-                            this.ballContainer.add(this.ballGraphics);
+
                         },
 
                         // Ajouter la méthode update pour l'animation
                         update: function () {
-                            if (isSpinning) {
-                                // rotations
-                                wheelRotation += wheelSpeed * wheelDirection;
-                                ballRotation += ballSpeed * ballDirection;
+  if (!isSpinning) return;
 
-                                if (this.wheelContainer) this.wheelContainer.rotation = wheelRotation;
-                                if (this.ballContainer) this.ballContainer.rotation = ballRotation;
+  // --- 1) Avancer la roue (sens horaire) ---
+  const prevWheelRotation = wheelRotation;
+  wheelRotation += wheelSpeed * wheelDirection;  // direction = +1
+  if (this.wheelContainer) this.wheelContainer.rotation = wheelRotation;
 
-                                // ralentissement progressif
-                                if (wheelSpeed > 0.001) {
-                                    wheelSpeed *= 0.995;
-                                    ballSpeed *= 0.997;
-                                } else {
-                                    wheelSpeed = 0;
-                                    const remaining = Math.abs(shortestSignedDelta(ballRotation, targetBallAngle));
-                                    if (ballSpeed > 0.0005) {
-                                        if (remaining < 0.10) ballSpeed *= 0.90;
-                                        else if (remaining < 0.30) ballSpeed *= 0.94;
-                                        else if (remaining < 0.80) ballSpeed *= 0.96;
-                                        else ballSpeed *= 0.98;
-                                    } else {
-                                        ballSpeed = 0;
-                                        this.ballContainer.rotation = targetBallAngle; // snap exact
-                                        if (isSpinning && pendingResult !== null) {
-                                            isSpinning = false;
-                                            displayResults(pendingResult);
-                                            pendingResult = null;
-                                        }
-                                    }
-                                }
+  // --- 2) Distance restante "dans le sens choisi" (absolue, sans modulo) ---
+  //   -> comme on a fixé targetWheelRotation > wheelRotation au départ,
+  //      la distance restante en CW est simplement :
+  let remaining = targetWheelRotation - wheelRotation; // en radians
 
-                            }
-                        }
+  // --- 3) Décélération progressive, surtout sur le dernier tour ---
+  //    On raisonne en "tours restants" pour être lisible.
+  const remainingTurns = Math.max(remaining / TAU, 0);
+
+  if (remainingTurns > 3) {
+    // Loin de l'arrivée : ralentissement très léger → spin long
+    wheelSpeed = Math.max(wheelSpeed * 0.999, 0.08);
+  } else if (remainingTurns > 2) {
+    wheelSpeed = Math.max(wheelSpeed * 0.997, 0.06);
+  } else if (remainingTurns > 1) {
+    wheelSpeed = Math.max(wheelSpeed * 0.994, 0.045);
+  } else if (remainingTurns > 0.5) {
+    wheelSpeed = Math.max(wheelSpeed * 0.988, 0.03);
+  } else if (remainingTurns > 0.2) {
+    wheelSpeed = Math.max(wheelSpeed * 0.96,  0.02);
+  } else if (remainingTurns > 0.05) {
+    wheelSpeed = Math.max(wheelSpeed * 0.90,  0.012);
+  } else {
+    // --- 4) Snap final au point cible ---
+    wheelRotation = targetWheelRotation;
+    if (this.wheelContainer) this.wheelContainer.rotation = wheelRotation;
+
+    isSpinning = false;
+    if (pendingResult !== null) {
+      displayResults(pendingResult);
+      pendingResult = null;
+    }
+    return;
+  }
+
+  // --- 5) Sécurité : si on dépasse la cible à cause d'un gros delta frame, on snap ---
+  if (wheelRotation >= targetWheelRotation) {
+    wheelRotation = targetWheelRotation;
+    if (this.wheelContainer) this.wheelContainer.rotation = wheelRotation;
+
+    isSpinning = false;
+    if (pendingResult !== null) {
+      displayResults(pendingResult);
+      pendingResult = null;
+    }
+  }
+}
 
                     }
                 };
@@ -788,38 +809,41 @@ const rouletteHtml = `
                 document.getElementById('btn-spin').addEventListener('click', () => {
                     // Vérifier si la roulette n'est pas déjà en rotation ET si une mise a été placée
                     if (!isSpinning && mise > 0) {
-                        const result = spinRoulette();
-                        renderSoldeMise();
+const result = spinRoulette();
+renderSoldeMise();
 
-                        // Initialiser l'animation
-                        isSpinning = true;
-                        wheelSpeed = 0.1;
-                        ballSpeed = 0.15;
-                        pendingResult = result;
+// --- paramètres de spin ---
+const MIN_TURNS = 3;
+const START_SPEED = 0.16;
 
-                        // ⛔️ ANCIEN CODE : calcul direct startAngle/endAngle + + 4*Math.PI
-                        // ✅ NOUVEAU CODE : angle monde = rotation roue + angle secteur relatif + tours extra
+isSpinning = true;
+wheelDirection = 1;         // on tourne horaire
+wheelSpeed = START_SPEED;
+pendingResult = result;
 
-                        const winningIndex = NUMBERS_ORDER.indexOf(result.winningNumber);
+// ⚠️ on NE normalise PAS wheelRotation : on travaille en "angles absolus"
+const winningIndex = NUMBERS_ORDER.indexOf(result.winningNumber);
+if (winningIndex !== -1) {
+  // angle du centre du secteur gagnant en repère roue
+  const centerRel = sectorCenterRelAngle(winningIndex);
 
-                        if (winningIndex !== -1) {
-                            const centerRel = sectorCenterRelAngle(winningIndex);       // angle du centre EN REPÈRE ROUE
-                            const goalWorld = norm(wheelRotation + centerRel);           // converti en angle monde (car la roue tourne)
-                            const goalContainer = norm(goalWorld - BALL_OFFSET);         // converti en rotation du container bille
+  // flèche fixe (monde) — top = -PI/2
+  const goalWorld = POINTER_WORLD_ANGLE;
 
-                            // On veut atteindre goalContainer en conservant la direction actuelle de la bille
-                            const extraTurns = 4;                                        // nb de tours visuels avant la cible
-                            let delta = shortestSignedDelta(ballRotation, goalContainer);
+  // orientation "monde" de la roue quand le centreRel passe sous la flèche
+  const baseTarget = goalWorld - centerRel; // pas de norm ici
 
-                            if (ballDirection === 1 && delta < 0) delta += TAU;          // sens horaire => delta positif
-                            if (ballDirection === -1 && delta > 0) delta -= TAU;         // anti-horaire => delta négatif
+  // delta positif vers l'avant + MIN_TURNS tours
+  // (on convertit la cible en "absolu" par rapport à wheelRotation courant)
+  const deltaCW0 = baseTarget - wheelRotation;           // peut être négatif/positif
+  const deltaCW   = (deltaCW0 % TAU + TAU) % TAU;        // remet dans [0, 2π)
+  const delta     = deltaCW + MIN_TURNS * TAU;           // ≥ 5 tours
 
-                            targetBallAngle = ballRotation
-                                + delta
-                                + (ballDirection === 1 ? extraTurns * TAU : -extraTurns * TAU);
-                        } else {
-                            targetBallAngle = ballRotation; // fallback
-                        }
+  targetWheelRotation = wheelRotation + delta;
+} else {
+  // fallback : 5 tours même si l'index est introuvable
+  targetWheelRotation = wheelRotation + MIN_TURNS * TAU;
+}
 
                     }
                 });
