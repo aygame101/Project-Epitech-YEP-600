@@ -1,13 +1,19 @@
 // components/GameDashboard.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { auth } from '../config/firebaseConfig';
-import { getUser } from './routes/firebaseService';
-import { getUserGameStats, getRecentPerformance, getBestPerformances } from './routes/gameStatsService';
+import { getUser } from './services/firebaseService';
+import { getUserGameStats, getRecentPerformance, getBestPerformances } from './services/gameStatsService';
 import GameRecommendationComponent from './GameRecommendationComponent';
 import { GameDashboardStyles as styles } from './styles';
+import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native'
 
 const GameDashboard = () => {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const [userData, setUserData] = useState(null);
   const [gameStats, setGameStats] = useState(null);
   const [recentPerformance, setRecentPerformance] = useState(null);
@@ -19,6 +25,16 @@ const GameDashboard = () => {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // ⬇️ Recharger à chaque fois que l'écran reprend le focus
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadDashboardData();
+      // pas d’unsubscribe nécessaire ici (simple fetch)
+      return () => { };
+    }, [])
+  );
 
   const loadDashboardData = async () => {
     try {
@@ -58,7 +74,7 @@ const GameDashboard = () => {
   };
 
   const formatCurrency = (amount) => {
-    return `${amount}€`;
+    return `${amount}`;
   };
 
   const getPerformanceColor = (winRate) => {
@@ -98,9 +114,21 @@ const GameDashboard = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* En-tete du tableau de bord */}
       <View style={styles.header}>
+        {/* Bouton retour */}
+        <View style={styles.backButtonContainer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Revenir en arrière"
+            hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}
+          >
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.title}>Tableau de Bord</Text>
         <Text style={styles.subtitle}>Bienvenue, {userData.username || 'Joueur'}!</Text>
         <View style={styles.balanceContainer}>
@@ -134,6 +162,8 @@ const GameDashboard = () => {
       {/* Contenu des onglets */}
       <ScrollView
         style={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -311,8 +341,8 @@ const GameDashboard = () => {
           <GameRecommendationComponent />
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
-export default GameDashboard; 
+export default GameDashboard;

@@ -236,4 +236,31 @@ export const GameDashboardStyles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 100,
   },
-}); 
+
+  backButtonContainer: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#222222',
+    borderWidth: 1,
+    borderColor: '#333333',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+});

@@ -16,9 +16,9 @@ import DailyBonusComponent from '../../components/services/DailyBonus'
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 
 const games = [
-  { label: '🤑 Slots',    screen: 'defslot' },
+  { label: '🤑 Slots', screen: 'defslot' },
   // { label: '🎡 Roulette', screen: 'Roulette' },
-  { label: '🃏 Blackjack',screen: 'blackjack' },
+  { label: '🃏 Blackjack', screen: 'blackjack' },
 ]
 
 export default function GameSelection() {
@@ -133,6 +133,13 @@ export default function GameSelection() {
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Se déconnecter</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('dashboard' as never)}
+      >
+        <Text style={styles.buttonText}>📊 Dashboard</Text>
       </TouchableOpacity>
     </SafeAreaView>
   )

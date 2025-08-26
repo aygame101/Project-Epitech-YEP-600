@@ -1,10 +1,12 @@
 // components/GameRecommendationComponent.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { getGameRecommendations, getPersonalizedTips } from '../ia/recommandation';
+// import { getGameRecommendations, getPersonalizedTips } from '../ia/recommandation';
 import { auth } from '../config/firebaseConfig';
-import { getUser } from './routes/firebaseService';
+import { getUser } from './services/firebaseService';
 import { GameRecommendationComponentStyles as styles } from './styles';
+
+const { getGameRecommendations, getPersonalizedTips } = require('../ia/recommandation');
 
 const GameRecommendationComponent = () => {
   const [recommendations, setRecommendations] = useState(null);
@@ -108,7 +110,7 @@ const GameRecommendationComponent = () => {
       {/* Recommandations par jeu */}
       <View style={styles.gamesSection}>
         <Text style={styles.sectionTitle}>Jeux Recommandes</Text>
-        
+
         {Object.entries(recommendations.games).map(([gameType, gameData]) => (
           <TouchableOpacity
             key={gameType}
@@ -132,7 +134,7 @@ const GameRecommendationComponent = () => {
             </View>
 
             <Text style={styles.gameDescription}>{gameData.description}</Text>
-            
+
             <View style={styles.gameDetails}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Difficulte:</Text>
@@ -140,14 +142,14 @@ const GameRecommendationComponent = () => {
                   {gameData.difficulty}
                 </Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Mise recommandee:</Text>
                 <Text style={styles.detailValue}>
-                  {gameData.betRange.min}€ - {gameData.betRange.max}€
+                  {gameData.betRange.min} - {gameData.betRange.max}
                 </Text>
               </View>
-              
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Strategie:</Text>
                 <Text style={styles.detailValue}>{gameData.strategy}</Text>

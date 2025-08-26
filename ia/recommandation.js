@@ -8,7 +8,7 @@ const GAME_TYPES = {
 
 const DIFFICULTY_LEVELS = {
   BEGINNER: 'Facile',
-  INTERMEDIATE: 'Moyenne', 
+  INTERMEDIATE: 'Moyenne',
   ADVANCED: 'Difficile',
   EXPERT: 'Expert'
 };
@@ -51,26 +51,26 @@ function getDifficultyLevel(userScore) {
 
 function analyzeUserPerformance(userData) {
   let score = 0;
-  
+
   // Score base sur le solde du portefeuille
   if (userData.walletBalance) {
     score += Math.min(userData.walletBalance * 0.1, 200);
   }
-  
+
   // Score base sur l'historique des jeux
   if (userData.gameHistory && userData.gameHistory.length > 0) {
     const recentGames = userData.gameHistory.slice(-10);
     const wins = recentGames.filter(game => game.result === 'win').length;
     const totalGames = recentGames.length;
-    
+
     if (totalGames > 0) {
       const winRate = (wins / totalGames) * 100;
       score += winRate * 2;
     }
-    
+
     score += totalGames * 5;
   }
-  
+
   // Score base sur la frequence de jeu
   if (userData.gameHistory) {
     const gamesThisWeek = userData.gameHistory.filter(game => {
@@ -78,10 +78,10 @@ function analyzeUserPerformance(userData) {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       return gameDate > weekAgo;
     }).length;
-    
+
     score += gamesThisWeek * 10;
   }
-  
+
   // Score base sur la progression du joueur
   if (userData.totalWins && userData.totalLosses) {
     const totalGames = userData.totalWins + userData.totalLosses;
@@ -90,13 +90,13 @@ function analyzeUserPerformance(userData) {
       score += progression;
     }
   }
-  
+
   return Math.round(score);
 }
 
 function calculateGameSuitability(gameType, userData, userScore) {
   let suitability = 50;
-  
+
   if (gameType === GAME_TYPES.BLACKJACK) {
     // Blackjack favorise les joueurs avec une bonne strategie
     if (userData.gameHistory) {
@@ -107,24 +107,24 @@ function calculateGameSuitability(gameType, userData, userScore) {
         suitability += blackjackWinRate - 50;
       }
     }
-    
+
     // Ajuster selon le niveau de difficulte
     if (userScore > 600) suitability += 20;
     else if (userScore < 300) suitability -= 15;
   }
-  
+
   if (gameType === GAME_TYPES.SLOT) {
     // Les slots sont plus accessibles aux debutants
     if (userScore < 400) suitability += 25;
     else if (userScore > 700) suitability -= 10;
-    
+
     // Ajuster selon l'experience
     if (userData.gameHistory) {
       const slotGames = userData.gameHistory.filter(game => game.gameType === 'slot');
       if (slotGames.length > 5) suitability += 15;
     }
   }
-  
+
   return Math.max(0, Math.min(100, suitability));
 }
 
@@ -143,21 +143,21 @@ function generateOverallRecommendation(userScore) {
 function getGameRecommendations(userData) {
   const userScore = analyzeUserPerformance(userData);
   const difficultyLevel = getDifficultyLevel(userScore);
-  
+
   const games = {};
-  
+
   // Generer des recommandations pour chaque type de jeu
   Object.keys(GAME_RECOMMENDATIONS).forEach(gameType => {
     const suitability = calculateGameSuitability(gameType, userData, userScore);
     const gameInfo = GAME_RECOMMENDATIONS[gameType];
-    
+
     games[gameType] = {
       ...gameInfo,
       suitability: Math.round(suitability),
       difficulty: gameInfo.difficulty
     };
   });
-  
+
   return {
     userScore,
     difficultyLevel,
@@ -168,7 +168,7 @@ function getGameRecommendations(userData) {
 
 function getPersonalizedTips(userData, gameType) {
   const tips = [];
-  
+
   if (gameType === GAME_TYPES.BLACKJACK) {
     if (userData.walletBalance < 100) {
       tips.push("Commencez avec de petites mises pour preserver votre capital");
@@ -179,7 +179,7 @@ function getPersonalizedTips(userData, gameType) {
     tips.push("Memorisez la strategie de base du blackjack");
     tips.push("Evitez de prendre l'assurance, c'est rarement profitable");
   }
-  
+
   if (gameType === GAME_TYPES.SLOT) {
     if (userData.walletBalance < 50) {
       tips.push("Choisissez des machines avec des mises minimales basses");
@@ -188,7 +188,7 @@ function getPersonalizedTips(userData, gameType) {
     tips.push("Prenez des pauses regulieres pour eviter la fatigue");
     tips.push("Jouez pour le plaisir, pas pour gagner de l'argent");
   }
-  
+
   return tips;
 }
 
