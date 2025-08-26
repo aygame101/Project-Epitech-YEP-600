@@ -17,13 +17,15 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 
 const games = [
   { label: '🤑 Slots', screen: 'defslot' },
-  // { label: '🎡 Roulette', screen: 'Roulette' },
   { label: '🃏 Blackjack', screen: 'blackjack' },
+  // { label: '🎡 Roulette', screen: 'roulette' },
 ]
 
 export default function GameSelection() {
   const navigation = useNavigation()
   const router = useRouter()
+  const insets = useSafeAreaInsets()
+
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState('')
   const [walletBalance, setWalletBalance] = useState(0)
@@ -87,27 +89,11 @@ export default function GameSelection() {
     )
   }
 
+  // Calcul du bottom padding pour ne pas que la barre recouvre le contenu
+  const containerBottomPad = ICON_SIZE + BOTTOM_OFFSET + insets.bottom + 20
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* --- Boutons flottants (absolus) : positionne-les plus bas avec ACTIONS_TOP_OFFSET --- */}
-      <View style={styles.actionsOverlay} pointerEvents="box-none">
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => navigation.navigate('scoreboard' as never)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.iconButtonText}>🏆</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => router.push('/chat')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.iconButtonText}>💬</Text>
-        </TouchableOpacity>
-      </View>
-
+    <SafeAreaView style={[styles.container, { paddingBottom: containerBottomPad }]}>
       {/* Titre centré */}
       <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
         Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
@@ -135,19 +121,45 @@ export default function GameSelection() {
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('dashboard' as never)}
+      {/* --- Barre d'actions en bas : 🏆 | 💬 | 📊 --- */}
+      <View
+        style={[
+          styles.actionsBottom,
+          { bottom: insets.bottom + BOTTOM_OFFSET },
+        ]}
+        pointerEvents="box-none"
       >
-        <Text style={styles.buttonText}>📊 Dashboard</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('dashboard' as never)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.iconButtonText}>📊</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('scoreboard' as never)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.iconButtonText}>🏆</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => router.push('/chat')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.iconButtonText}>💬</Text>
+        </TouchableOpacity>
+
+      </View>
     </SafeAreaView>
   )
 }
 
 const ICON_SIZE = 50
-// ➜ Ajuste cette valeur pour monter/descendre les deux boutons sans bouger le texte
-const ACTIONS_TOP_OFFSET = 68
+const BOTTOM_OFFSET = 10
 
 const styles = StyleSheet.create({
   loader: {
@@ -165,12 +177,11 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
 
-  // --- Overlay absolu pour les deux boutons (gauche/droite) ---
-  actionsOverlay: {
+  // --- Barre absolue en bas pour les trois icônes ---
+  actionsBottom: {
     position: 'absolute',
-    top: ACTIONS_TOP_OFFSET,
-    left: 20,
-    right: 20,
+    left: 40,
+    right: 40,
     height: ICON_SIZE,
     zIndex: 10,
     flexDirection: 'row',
@@ -189,7 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButtonText: {
-    fontSize: 18,
+    fontSize: 22,
     color: '#e94560',
   },
 
