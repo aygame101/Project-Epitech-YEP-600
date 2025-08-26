@@ -1,16 +1,21 @@
 // components/games/RouletteGameWebView.js
 import React, { useState, useCallback } from 'react'
-import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native'
+import { View, ActivityIndicator, StyleSheet, Alert, ImageBackground } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { useRouter } from 'expo-router'
 import { auth, db, recordGameResult } from '../../config/firebaseConfig'
 import { doc, getDoc } from 'firebase/firestore'
 import { useFocusEffect } from '@react-navigation/native'
+import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system';
 
 export default function RouletteGameWebView() {
   const router = useRouter()
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(true)
+  const insets = useSafeAreaInsets()
 
   const loadGame = useCallback(async () => {
     setLoading(true)
@@ -20,13 +25,23 @@ export default function RouletteGameWebView() {
       const snap = await getDoc(doc(db, 'Users', user.uid))
       const walletBalance = snap.exists() ? Number(snap.data().walletBalance ?? 0) : 0
 
+      // même image que le slot (ou celle que tu veux)
+      const bgAsset = await Asset.fromModule(
+        require('../../assets/games/blackjack/table-background.png')
+      ).downloadAsync();
+
+      const bg64 = await FileSystem.readAsStringAsync(bgAsset.localUri || bgAsset.uri, {
+        encoding: FileSystem.EncodingType.Base64
+      });
+
       const htmlContent = `
 <!DOCTYPE html>
 <html lang="fr">
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Roulette (Full Phaser)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <style>
@@ -35,18 +50,18 @@ export default function RouletteGameWebView() {
         #game {
             margin: 0;
             padding: 0;
+            overflow: hidden;
             width: 100vw;
             height: 100vh;
-            background: #0F5132;
-            overflow: hidden;
+            background: transparent;
         }
 
         canvas {
             display: block;
+            margin: auto;
         }
     </style>
 </head>
-
 <body>
     <div id="game"></div>
     <script>
@@ -81,7 +96,7 @@ export default function RouletteGameWebView() {
             const LEFT_PANEL_GAP = 10; // espace entre table, chips et boutons
 
             // --- État jeu ---
-            let tokens = ${ walletBalance };
+            let tokens = ${walletBalance};
             let selectedChip = 10;
             const CHIP_VALUES = [10, 20, 50, 100, 500];
 
@@ -605,13 +620,14 @@ export default function RouletteGameWebView() {
 
 
             // --- Phaser game ---
-            const game = new Phaser.Game({
-                type: Phaser.AUTO,
-                parent: 'game',
-                backgroundColor: '#0F5132',
-                scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 720, height: 1280 },
-                scene: { create, update }
-            });
+const game = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'game',
+  backgroundColor: 'transparent',
+  transparent: true,
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 720, height: 1280 },
+  scene: { create, update }
+});
 
             let sceneRef = null;
 
@@ -788,13 +804,13 @@ export default function RouletteGameWebView() {
       if (data.result) {
         const user = auth.currentUser
         if (!user) return
-        const { game='roulette', wager=0, payout=0, winningNumber, bets=[] } = data.result
+        const { game = 'roulette', wager = 0, payout = 0, winningNumber, bets = [] } = data.result
         try {
           await recordGameResult(user.uid, {
             game,
             wager,
             payout,
-            metadata: { winningNumber, bets: Array.isArray(bets) ? bets.slice(0,100) : [] }
+            metadata: { winningNumber, bets: Array.isArray(bets) ? bets.slice(0, 100) : [] }
           })
           // Pas de setState du solde ici : Firestore gère le solde en transaction par recordGameResult
         } catch (e) {
@@ -817,6 +833,23 @@ export default function RouletteGameWebView() {
 
   return (
     <View style={styles.container}>
+      {/* StatusBar transparente pour voir le fond en-dessous */}
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
+      {/* FOND GLOBAL : on “déborde” volontairement dans les safe areas */}
+      <ImageBackground
+        source={require('../../assets/games/blackjack/table-background.png')}
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            top: -insets.top,
+            bottom: -insets.bottom,
+            left: -insets.left,
+            right: -insets.right,
+          },
+        ]}
+        imageStyle={{ resizeMode: 'cover' }}
+      />
       <WebView
         originWhitelist={['*']}
         source={{ html }}
@@ -824,14 +857,16 @@ export default function RouletteGameWebView() {
         domStorageEnabled
         onMessage={onMessage}
         onError={({ nativeEvent }) => Alert.alert('WebView erreur', nativeEvent.description)}
-        style={styles.webview}
+        style={[styles.webview, { backgroundColor: 'transparent' }]}
+        contentInsetAdjustmentBehavior="never"
+        bounces={false}
       />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
   webview: { flex: 1 }
 })
