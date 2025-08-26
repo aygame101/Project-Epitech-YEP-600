@@ -60,38 +60,44 @@ export default function BlackjackGameWebView() {
 
             if (data.action === 'goBack') {
                 router.replace('/')
-            } else if (typeof data.newBalance === 'number') {
+            } else if (data?.type === 'gameResult') {
                 const user = auth.currentUser
                 if (user) {
-                    await updateDoc(doc(db, 'Users', user.uid), { walletBalance: data.newBalance })
+                    await recordGameResult(user.uid, {
+                        game: data.game || 'blackjack',
+                        wager: Number(data.wager) || 0,
+                        payout: Number(data.payout) || 0,
+                        metadata: data.metadata || {}
+                    })
                 }
+                return
             }
         } catch (e) {
-            console.error(e)
-        }
+        console.error(e)
     }
+}
 
-    if (loading) {
-        return (
-            <View style={styles.loader}>
-                <ActivityIndicator size="large" color="#e94560" />
-            </View>
-        )
-    }
-
+if (loading) {
     return (
-        <View style={styles.container}>
-            <WebView
-                originWhitelist={['*']}
-                source={{ html }}
-                javaScriptEnabled
-                domStorageEnabled
-                onMessage={handleMessage}
-                onError={({ nativeEvent }) => Alert.alert('WebView erreur', nativeEvent.description)}
-                style={styles.webview}
-            />
+        <View style={styles.loader}>
+            <ActivityIndicator size="large" color="#e94560" />
         </View>
     )
+}
+
+return (
+    <View style={styles.container}>
+        <WebView
+            originWhitelist={['*']}
+            source={{ html }}
+            javaScriptEnabled
+            domStorageEnabled
+            onMessage={handleMessage}
+            onError={({ nativeEvent }) => Alert.alert('WebView erreur', nativeEvent.description)}
+            style={styles.webview}
+        />
+    </View>
+)
 }
 
 const styles = StyleSheet.create({
