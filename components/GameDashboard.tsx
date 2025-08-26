@@ -11,6 +11,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 
 const GameDashboard = () => {
+    const gameLabel = (t?: string) => {
+    const s = String(t || '').toLowerCase()
+    if (s === 'blackjack') return 'Blackjack'
+    if (s === 'slot') return 'Machine à Sous'
+    if (s === 'roulette') return 'Roulette'
+    return 'Autre'
+  }
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -229,17 +237,13 @@ const GameDashboard = () => {
                 {bestPerformances.bestGameType && (
                   <View style={styles.bestPerformanceItem}>
                     <Text style={styles.bestPerformanceLabel}>Meilleur jeu:</Text>
-                    <Text style={styles.bestPerformanceValue}>
-                      {bestPerformances.bestGameType === 'blackjack' ? 'Blackjack' : 'Machine a Sous'}
-                    </Text>
+                    <Text style={styles.bestPerformanceValue}>{gameLabel(bestPerformances.bestGameType)}</Text>
                   </View>
                 )}
                 {bestPerformances.mostPlayedGame && (
                   <View style={styles.bestPerformanceItem}>
                     <Text style={styles.bestPerformanceLabel}>Jeu le plus joue:</Text>
-                    <Text style={styles.bestPerformanceValue}>
-                      {bestPerformances.mostPlayedGame === 'blackjack' ? 'Blackjack' : 'Machine a Sous'}
-                    </Text>
+                    <Text style={styles.bestPerformanceValue}>{gameLabel(bestPerformances.mostPlayedGame)}</Text>
                   </View>
                 )}
               </View>
@@ -309,9 +313,7 @@ const GameDashboard = () => {
                     <Text style={styles.sectionTitle}>Statistiques par Jeu</Text>
                     {Object.entries(gameStats.gameTypeStats).map(([gameType, stats]) => (
                       <View key={gameType} style={styles.gameTypeStats}>
-                        <Text style={styles.gameTypeTitle}>
-                          {gameType === 'blackjack' ? 'Blackjack' : 'Machine a Sous'}
-                        </Text>
+                        <Text style={styles.gameTypeTitle}>{gameLabel(gameType)}</Text>
                         <View style={styles.gameTypeGrid}>
                           <View style={styles.gameTypeStat}>
                             <Text style={styles.gameTypeStatLabel}>Parties</Text>
