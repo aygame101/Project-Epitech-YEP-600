@@ -3,7 +3,8 @@
 
 const GAME_TYPES = {
   BLACKJACK: 'blackjack',
-  SLOT: 'slot'
+  SLOT: 'slot',
+  ROULETTE: 'roulette'
 };
 
 const DIFFICULTY_LEVELS = {
@@ -27,6 +28,7 @@ const GAME_RECOMMENDATIONS = {
       'Eviter l\'assurance'
     ]
   },
+
   slot: {
     name: 'Machine a Sous',
     description: 'Jeu de hasard avec des combinaisons de symboles',
@@ -38,6 +40,19 @@ const GAME_RECOMMENDATIONS = {
       'Choisir des machines avec un bon RTP',
       'Jouer avec des mises moderees',
       'Prendre des pauses regulieres'
+    ]
+  },
+
+  roulette: {
+    name: 'Roulette',
+    description: 'Jeu de table basé sur le hasard avec gestion du risque par types de mises',
+    difficulty: DIFFICULTY_LEVELS.INTERMEDIATE,
+    betRange: { min: 1, max: 100 },
+    strategy: 'Privilégier des mises extérieures (pair/impair, rouge/noir) pour lisser la variance',
+    tips: [
+      'Évite la martingale : gère ton budget, fixe une perte max',
+      'Privilégie les mises à forte couverture (rouge/noir, pair/impair)',
+      'Prévois des sessions courtes, fais des pauses'
     ]
   }
 };
@@ -125,6 +140,20 @@ function calculateGameSuitability(gameType, userData, userScore) {
     }
   }
 
+  if (gameType === GAME_TYPES.ROULETTE) {
+    // Joueurs intermédiaires/budget moyen : favorise la roulette
+    if (userScore >= 300 && userScore <= 800) suitability += 15
+    // Si l’historique contient de la roulette, ajuste via "win rate"
+    if (userData.gameHistory) {
+      const r = userData.gameHistory.filter(g => String(g.gameType).toLowerCase() === 'roulette')
+      if (r.length > 0) {
+        const wins = r.filter(g => g.result === 'win').length
+        const rate = (wins / r.length) * 100
+        suitability += (rate - 50) / 2 // impact plus doux que BJ
+      }
+    }
+  }
+
   return Math.max(0, Math.min(100, suitability));
 }
 
@@ -189,6 +218,12 @@ function getPersonalizedTips(userData, gameType) {
     tips.push("Jouez pour le plaisir, pas pour gagner de l'argent");
   }
 
+  if (gameType === GAME_TYPES.ROULETTE) {
+    if (userData.walletBalance < 100) tips.push('Reste sur des mises extérieures à faible variance (1–5)')
+    tips.push('Fixe une limite de pertes et de temps de jeu')
+    tips.push('Évite d’augmenter la mise après une perte (anti-martingale)')
+  }
+
   return tips;
 }
 
@@ -199,4 +234,4 @@ module.exports = {
   GAME_TYPES,
   DIFFICULTY_LEVELS,
   GAME_RECOMMENDATIONS
-}; 
+};

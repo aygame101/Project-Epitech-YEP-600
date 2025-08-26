@@ -10,6 +10,7 @@ const normalizeGameType = (g) => {
     if (s === 'slots') return 'slot'
     if (s === 'slot') return 'slot'
     if (s === 'blackjack') return 'blackjack'
+    if (s === 'roulette' || s === 'roulettes') return 'roulette'
     return 'other'
 }
 

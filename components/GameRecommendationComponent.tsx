@@ -58,6 +58,7 @@ const GameRecommendationComponent = () => {
   const getGameIcon = (gameType) => {
     if (gameType === 'blackjack') return 'B';
     if (gameType === 'slot') return 'S';
+    if (gameType === 'roulette') return 'R';
     return 'G';
   };
 
@@ -123,7 +124,9 @@ const GameRecommendationComponent = () => {
             <View style={styles.gameHeader}>
               <Text style={styles.gameIcon}>{getGameIcon(gameType)}</Text>
               <Text style={styles.gameName}>
-                {gameType === 'blackjack' ? 'Blackjack' : 'Machine a Sous'}
+                {gameType === 'blackjack' ? 'Blackjack' :
+                  gameType === 'slot' ? 'Machine à Sous' :
+                    gameType === 'roulette' ? 'Roulette' : 'Autre'}
               </Text>
               <View style={styles.suitabilityContainer}>
                 <Text style={styles.suitabilityLabel}>Pertinence:</Text>
