@@ -19,6 +19,7 @@ const games = [
   { label: '🤑 Slots', screen: 'defslot' },
   { label: '🃏 Blackjack', screen: 'blackjack' },
   { label: '🎡 Roulette', screen: 'roulette' },
+
 ]
 
 export default function GameSelection() {
