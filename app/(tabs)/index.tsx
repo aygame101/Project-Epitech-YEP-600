@@ -18,7 +18,8 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 const games = [
   { label: '🤑 Slots', screen: 'defslot' },
   { label: '🃏 Blackjack', screen: 'blackjack' },
-  // { label: '🎡 Roulette', screen: 'roulette' },
+  { label: '🎡 Roulette', screen: 'roulette' },
+
 ]
 
 export default function GameSelection() {
