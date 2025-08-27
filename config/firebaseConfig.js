@@ -378,10 +378,6 @@ export async function markRead({ cid, uid }) {
 
 
 // ==================== FAVORIS ====================
-/**
- * Met à jour le statut "favoris" (0/1) pour otherUid côté utilisateur courant.
- * Utilise auth.currentUser pour récupérer myUid.
- */
 export async function updateFavoris(otherUid, favoris) {
   const myUid = auth.currentUser?.uid
   if (!myUid) throw new Error("not-authenticated")
@@ -389,4 +385,19 @@ export async function updateFavoris(otherUid, favoris) {
 
   const ref = doc(db, "Users", myUid, "favorites", otherUid)
   await setDoc(ref, { favoris, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+// Ecoute live => { [otherUid]: 0|1, ... }
+export function listenFavoritesMap(myUid, callback) {
+  if (!myUid) return () => {}
+  const ref = collection(db, "Users", myUid, "favorites")
+  const unsub = onSnapshot(ref, (snap) => {
+    const map = {}
+    snap.forEach(d => {
+      const data = d.data() || {}
+      map[d.id] = (data.favoris === 1 ? 1 : 0)
+    })
+    callback(map)
+  })
+  return unsub
 }
