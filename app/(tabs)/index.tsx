@@ -100,8 +100,6 @@ export default function GameSelection() {
         contentContainerStyle={[styles.scrollContainer, { paddingBottom: scrollExtraBottom }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Logo en haut */}
-        <Text style={styles.logo}>🎰</Text>
 
         {/* Informations utilisateur */}
         <View style={styles.userInfoContainer}>
