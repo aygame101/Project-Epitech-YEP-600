@@ -5,7 +5,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native'
 import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native'
 import { useRouter } from 'expo-router'
@@ -16,10 +17,9 @@ import DailyBonusComponent from '../../components/services/DailyBonus'
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 
 const games = [
-  { label: '🤑 Slots', screen: 'defslot' },
+  { label: '🤑 Machines à Sous', screen: 'defslot' },
   { label: '🃏 Blackjack', screen: 'blackjack' },
   { label: '🎡 Roulette', screen: 'roulette' },
-
 ]
 
 export default function GameSelection() {
@@ -85,55 +85,74 @@ export default function GameSelection() {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#e94560" />
+        <ActivityIndicator size="large" color="#ff3e80" />
       </View>
     )
   }
 
-  // Calcul du bottom padding pour ne pas que la barre recouvre le contenu
-  const containerBottomPad = ICON_SIZE + BOTTOM_OFFSET + insets.bottom + 20
+  // Hauteur de la barre + safe-area pour caler le ScrollView
+  const BAR_HEIGHT = ICON_SIZE + 30
+  const scrollExtraBottom = BAR_HEIGHT + insets.bottom + 20
 
   return (
-    <SafeAreaView style={[styles.container, { paddingBottom: containerBottomPad }]}>
-      {/* Titre centré */}
-      <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
-        Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
-      </Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContainer, { paddingBottom: scrollExtraBottom }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo en haut */}
+        <Text style={styles.logo}>🎰</Text>
 
-      {/* Sous-titre centré */}
-      <Text style={styles.balance}>
-        Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
-      </Text>
+        {/* Informations utilisateur */}
+        <View style={styles.userInfoContainer}>
+          <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+            Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
+          </Text>
+          <Text style={styles.balance}>
+            Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
+          </Text>
+        </View>
 
-      <DailyBonusComponent />
+        {/* Bonus quotidien */}
+        <DailyBonusComponent />
 
-      <Text style={styles.title}>Choisis ton jeu</Text>
-      {games.map((g) => (
-        <TouchableOpacity
-          key={g.screen}
-          style={styles.button}
-          onPress={() => navigation.navigate(g.screen as never)}
-        >
-          <Text style={styles.buttonText}>{g.label}</Text>
+        {/* Sélection de jeux */}
+        <Text style={styles.title}>Choisis ton jeu</Text>
+
+        <View style={styles.gamesContainer}>
+          {games.map((g) => (
+            <TouchableOpacity
+              key={g.screen}
+              style={styles.gameButton}
+              onPress={() => navigation.navigate(g.screen as never)}
+            >
+              <Text style={styles.gameButtonText}>{g.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Bouton de déconnexion */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
-      ))}
+      </ScrollView>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Se déconnecter</Text>
-      </TouchableOpacity>
-
-      {/* --- Barre d'actions en bas : 🏆 | 💬 | 📊 --- */}
+      {/* Barre d'actions en bas – OPAQUE JUSQU'AU BORD */}
       <View
         style={[
           styles.actionsBottom,
-          { bottom: insets.bottom + BOTTOM_OFFSET },
+          {
+            bottom: 0,                          // ancré tout en bas
+            height: BAR_HEIGHT + insets.bottom, // inclut le safe-area
+            paddingBottom: insets.bottom,       // espace pour le menton/gestures
+          },
         ]}
         pointerEvents="box-none"
       >
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => navigation.navigate('dashboard' as never)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
           <Text style={styles.iconButtonText}>📊</Text>
         </TouchableOpacity>
@@ -141,7 +160,7 @@ export default function GameSelection() {
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => navigation.navigate('scoreboard' as never)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
           <Text style={styles.iconButtonText}>🏆</Text>
         </TouchableOpacity>
@@ -149,111 +168,148 @@ export default function GameSelection() {
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => router.push('/chat')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
         >
           <Text style={styles.iconButtonText}>💬</Text>
         </TouchableOpacity>
-
       </View>
     </SafeAreaView>
   )
 }
 
 const ICON_SIZE = 50
-const BOTTOM_OFFSET = 10
 
 const styles = StyleSheet.create({
   loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#0f1123',
   },
   container: {
     flex: 1,
+    backgroundColor: '#0f1123',
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
     padding: 20,
-    paddingTop: 20,
+    paddingTop: 30,
+    // plus de paddingBottom ici : il est géré dynamiquement au-dessus
   },
-
-  // --- Barre absolue en bas pour les trois icônes ---
+  logo: {
+    fontSize: 50,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  userInfoContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 25,
+    padding: 15,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  greeting: {
+    fontSize: 20,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 5,
+    fontWeight: '500',
+  },
+  balance: {
+    fontSize: 18,
+    color: '#ccc',
+    textAlign: 'center',
+  },
+  highlight: {
+    color: '#ff3e80',
+    fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 26,
+    marginBottom: 25,
+    color: '#ff3e80',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 62, 128, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  gamesContainer: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  gameButton: {
+    width: '100%',
+    paddingVertical: 18,
+    marginVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#ff3e80',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#ff3e80',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  gameButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  logoutButton: {
+    marginTop: 30,
+    borderWidth: 2,
+    borderColor: '#ff3e80',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    marginBottom: 20,
+  },
+  logoutText: {
+    color: '#ff3e80',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   actionsBottom: {
     position: 'absolute',
-    left: 40,
-    right: 40,
-    height: ICON_SIZE,
+    left: 0,
+    right: 0,
     zIndex: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
+    backgroundColor: '#0f1123', // opaque
+    borderTopWidth: 1,
+    borderColor: 'rgba(255, 62, 128, 0.3)',
+    paddingHorizontal: 20,
+    elevation: 10, // Android
+    shadowColor: '#000', // iOS
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-
   iconButton: {
     width: ICON_SIZE,
     height: ICON_SIZE,
     borderRadius: ICON_SIZE / 2,
-    backgroundColor: 'rgba(233, 69, 96, 0.15)',
+    backgroundColor: 'rgba(255, 62, 128, 0.15)',
     borderWidth: 1,
-    borderColor: '#e94560',
+    borderColor: '#ff3e80',
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconButtonText: {
     fontSize: 22,
-    color: '#e94560',
-  },
-
-  greeting: {
-    fontSize: 24,
-    color: '#fff',
-    textAlign: 'center',
-    alignSelf: 'stretch',
-  },
-  balance: {
-    fontSize: 18,
-    color: '#ccc',
-    marginBottom: 20,
-    textAlign: 'center',
-    alignSelf: 'stretch',
-  },
-  highlight: {
-    color: '#e94560',
-    fontWeight: 'bold',
-  },
-  title: {
-    fontSize: 32,
-    marginBottom: 30,
-    color: '#e94560',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  button: {
-    width: '80%',
-    paddingVertical: 15,
-    marginVertical: 10,
-    borderRadius: 30,
-    backgroundColor: 'rgba(233, 69, 96, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  logoutButton: {
-    marginTop: 40,
-    borderWidth: 1,
-    borderColor: '#e94560',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-  },
-  logoutText: {
-    color: '#e94560',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#ff3e80',
   },
 })
