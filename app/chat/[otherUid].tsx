@@ -92,7 +92,7 @@ export default function ChatRoom() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-      {/* ⚠️ on ne met PAS "bottom" dans edges pour éviter un padding auto quand le clavier s'ouvre */}
+      {/* Pas d'edge "bottom" : on gère l'espace bas nous-mêmes */}
       <SafeAreaView edges={['top','left','right']} style={{ flex: 1, backgroundColor: BG }}>
         {/* Header : retour | nom | spacer */}
         <View style={[styles.headerRow, { paddingTop: 8, paddingHorizontal: 20 }]}>
@@ -112,12 +112,21 @@ export default function ChatRoom() {
           data={msgs}
           renderItem={renderMsg}
           keyExtractor={(m) => m.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: inputBarH + bottomGap + 12 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: inputBarH + bottomGap + 12,
+            // permet de tirer/drag même si peu de messages (close clavier à la iMessage)
+            flexGrow: 1,
+          }}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
+          // 💡 iOS : fermeture progressive du clavier en scrollant (comme iMessage)
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          // 🔧 Android fallback : on ferme dès le début d’un drag
+          onScrollBeginDrag={() => { if (Platform.OS === 'android') Keyboard.dismiss() }}
         />
 
-        {/* Barre d'entrée : on la place avec bottom = bottomGap pour avoir un gap SYMÉTRIQUE */}
+        {/* Barre d'entrée contrôlée par bottomGap pour un gap symétrique */}
         <View
           style={[styles.inputBar, { bottom: bottomGap }]}
           onLayout={(e) => setInputBarH(e.nativeEvent.layout.height)}
@@ -161,7 +170,6 @@ const styles = StyleSheet.create({
   inputBar: {
     position: 'absolute',
     left: 0, right: 0,
-    // top padding visuel constant
     paddingTop: GAP, paddingHorizontal: 10,
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.2)',
