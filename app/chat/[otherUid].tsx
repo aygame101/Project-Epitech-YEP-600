@@ -142,8 +142,8 @@ export default function ChatRoom() {
             onSubmitEditing={onSubmitEditing}
           />
           <TouchableOpacity style={styles.send} onPress={onSend}>
-            <Text style={{ color: '#111', fontWeight: '800' }}>Envoyer</Text>
-          </TouchableOpacity>
+  <Text style={{ color: '#fff', fontWeight: '800' }}>Envoyer</Text>
+</TouchableOpacity>
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -181,5 +181,5 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)'
   },
-  send: { paddingHorizontal: 14, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#8ef' }
+  send: { paddingHorizontal: 14, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: ACCENT }
 })
