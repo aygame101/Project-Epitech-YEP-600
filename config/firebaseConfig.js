@@ -375,3 +375,18 @@ export async function markRead({ cid, uid }) {
     await updateDoc(mref, { lastReadAt: serverTimestamp() })
   }
 }
+
+
+// ==================== FAVORIS ====================
+/**
+ * Met à jour le statut "favoris" (0/1) pour otherUid côté utilisateur courant.
+ * Utilise auth.currentUser pour récupérer myUid.
+ */
+export async function updateFavoris(otherUid, favoris) {
+  const myUid = auth.currentUser?.uid
+  if (!myUid) throw new Error("not-authenticated")
+  if (!otherUid) throw new Error("missing-otherUid")
+
+  const ref = doc(db, "Users", myUid, "favorites", otherUid)
+  await setDoc(ref, { favoris, updatedAt: serverTimestamp() }, { merge: true })
+}
