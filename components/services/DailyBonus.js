@@ -183,8 +183,14 @@ export default function DailyBonus({ buttonStyle, textStyle }) {
 
     // 3 tours complets + demi-tour si "face", pour tomber du bon côté
     const fullSpins = 3
-    const extra = result === 'pile' ? 0 : 180
-    const target = spinAngleRef.current + 360 * fullSpins + extra
+// angle désiré (0° = PILE devant, 180° = FACE devant)
+const desired = result === 'pile' ? 0 : 180
+// angle courant modulo 360 dans [0..360)
+const currentMod = ((spinAngleRef.current % 360) + 360) % 360
+// delta minimal positif pour tomber sur la bonne face
+const deltaToDesired = (desired - currentMod + 360) % 360
+// objectif = 3 tours complets + delta vers la bonne face
+const target = spinAngleRef.current + 360 * fullSpins + deltaToDesired
 
     Animated.timing(spin, {
       toValue: target,
@@ -369,8 +375,8 @@ export default function DailyBonus({ buttonStyle, textStyle }) {
                     <Text style={styles.faceText}>PILE</Text>
                   </Animated.View>
                   {/* Face "Face" */}
-                  <Animated.View style={[styles.face, { opacity: backOpacity }]}>
-                    <Text style={[styles.faceText, styles.faceBack]}>FACE</Text>
+                  <Animated.View style={[styles.face, styles.faceBack, { opacity: backOpacity }]}>
+                    <Text style={styles.faceText}>FACE</Text>
                   </Animated.View>
                 </Animated.View>
               </View>
