@@ -62,16 +62,9 @@
     "babel-jest": "^30.0.5",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "jest-expo": "^53.0.0",
     "typescript": "~5.8.3"
   },
-
-  "jest": {
-    "preset": "jest-expo",
-    "transformIgnorePatterns": [
-      "node_modules/(?!(@react-native|react-native|expo(nent)?|@expo(nent)?|expo-router|firebase)/)"
-    ]
-  },
-  
   "private": true,
   "description": "App mobile casino",
   "repository": {

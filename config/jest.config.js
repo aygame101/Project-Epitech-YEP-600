@@ -1,7 +1,7 @@
 module.exports = {
-  preset: 'react-native',
-  transform: {
-    '^.+\\.(js|jsx)$': 'babel-jest',
+  "preset": "jest-expo",
+  "transform": {
+    "^.+\\.[jt]sx?$": "babel-jest"
   },
-  moduleFileExtensions: ['js', 'jsx', 'json', 'node'],
-};
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"]
+}
