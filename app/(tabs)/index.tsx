@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router'
 import { auth, db } from '../../config/firebaseConfig'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { signOut } from 'firebase/auth'
-import DailyBonusComponent from '../../components/services/DailyBonus'
+import DailyBonus from '../../components/services/DailyBonus'
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 
 const games = [
@@ -103,16 +103,27 @@ export default function GameSelection() {
 
         {/* Informations utilisateur */}
         <View style={styles.userInfoContainer}>
-          <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
-            Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
-          </Text>
-          <Text style={styles.balance}>
-            Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
-          </Text>
+          <View style={styles.headerGrid}>
+            {/* 1fr – spacer gauche */}
+            <View style={styles.colLeft} />
+
+            {/* 4fr – div1 : Bonjour + Solde, centrés et empilés */}
+            <View style={styles.div1}>
+              <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+                Bonjour <Text style={styles.highlight}>{userName || 'Joueur'}</Text> !
+              </Text>
+              <Text style={styles.balance} numberOfLines={1}>
+                Solde : <Text style={styles.highlight}>{walletBalance} jets</Text>
+              </Text>
+            </View>
+
+            {/* 1fr – div2 : bouton bonus */}
+            <View style={styles.div2}>
+              <DailyBonus buttonStyle={styles.bonusButton} textStyle={styles.bonusButtonText} />
+            </View>
+          </View>
         </View>
 
-        {/* Bonus quotidien */}
-        <DailyBonusComponent />
 
         {/* Sélection de jeux */}
         <Text style={styles.title}>Choisis ton jeu</Text>
@@ -176,6 +187,7 @@ export default function GameSelection() {
 }
 
 const ICON_SIZE = 50
+const MINI_ICON = 40
 
 const styles = StyleSheet.create({
   loader: {
@@ -201,9 +213,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+
+  // titre :
   userInfoContainer: {
     width: '100%',
-    alignItems: 'center',
     marginBottom: 25,
     padding: 15,
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -211,6 +224,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
+
+  headerGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    minHeight: 60, // ajustable
+  },
+  colLeft: {
+    flex: 1,
+  },
+  div1: {
+    flex: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  div2: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   greeting: {
     fontSize: 20,
     color: '#fff',
@@ -223,6 +258,24 @@ const styles = StyleSheet.create({
     color: '#ccc',
     textAlign: 'center',
   },
+
+  // 🎁 bouton bonus (même style que les icônes du bas, en compact)
+  bonusButton: {
+    width: MINI_ICON,
+    height: MINI_ICON,
+    borderRadius: MINI_ICON / 2,
+    backgroundColor: 'rgba(255, 62, 128, 0.15)',
+    borderWidth: 1,
+    borderColor: '#ff3e80',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bonusButtonText: {
+    fontSize: 20,
+    color: '#ff3e80',
+    fontWeight: '600',
+  },
+
   highlight: {
     color: '#ff3e80',
     fontWeight: 'bold',
@@ -237,6 +290,8 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
   },
+
+  // boutons jeux
   gamesContainer: {
     width: '100%',
     maxWidth: 400,
