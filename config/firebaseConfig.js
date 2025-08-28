@@ -87,7 +87,7 @@ export function listenDailyBonusStatus(userId, callback) {
       lastField instanceof Timestamp ? lastField.toMillis()
         : typeof lastField === 'number' ? lastField : 0
     const now = Date.now()
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000
+    const ONE_DAY_MS = /* 24 * 60 * */60 * 1000 //1minutes pour les test, enlever le com pour remettre 24h
     const canClaim = now - last >= ONE_DAY_MS
     const timeRemaining = canClaim ? 0 : (last + ONE_DAY_MS) - now
     const hoursRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60))
@@ -97,7 +97,7 @@ export function listenDailyBonusStatus(userId, callback) {
 }
 
 export async function claimDailyBonusClient(uid) {
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000
+  const ONE_DAY_MS = /* 24 * 60 * */60 * 1000 //1minutes pour les test, enlever le com pour remettre 24h
   const BONUS_AMOUNT = 100
   const ref = doc(db, 'Users', uid)
   return await runTransaction(db, async (tx) => {
@@ -110,8 +110,9 @@ export async function claimDailyBonusClient(uid) {
         : typeof lastField === 'number' ? lastField : 0
     const now = Date.now()
     if (now - last < ONE_DAY_MS) {
-      const hrs = Math.ceil(((last + ONE_DAY_MS) - now) / (1000 * 60 * 60))
-      return { status: 'failure', message: `Revenez dans ${hrs} heure(s) pour votre prochain bonus.` }
+      // const hrs = Math.ceil(((last + ONE_DAY_MS) - now) / (1000 * 60 * 60)) // heures normal, enlever com pour remettre 24h
+      const minutes = Math.ceil(remaining / (1000 * 60)) //minutes pour tests
+      return { status: 'failure', message: `Revenez dans ${minutes} heure(s) pour votre prochain bonus.` }
     }
     tx.update(ref, {
       walletBalance: increment(BONUS_AMOUNT),

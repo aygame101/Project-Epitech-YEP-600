@@ -111,9 +111,6 @@ export default function GameSelection() {
           </Text>
         </View>
 
-        {/* Bonus quotidien */}
-        <DailyBonusComponent />
-
         {/* Sélection de jeux */}
         <Text style={styles.title}>Choisis ton jeu</Text>
 
@@ -128,6 +125,9 @@ export default function GameSelection() {
             </TouchableOpacity>
           ))}
         </View>
+
+      {/* Bonus quotidien */}
+      <DailyBonusComponent />
 
         {/* Bouton de déconnexion */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
