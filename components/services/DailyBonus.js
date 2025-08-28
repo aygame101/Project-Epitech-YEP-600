@@ -1,74 +1,54 @@
-// components/DailyBonusComponent.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, Alert, TouchableOpacity } from 'react-native'
+// components/services/DailyBonus.js
+import React, { useEffect, useState, useCallback } from 'react'
+import { TouchableOpacity, Text, Alert } from 'react-native'
 import { auth, listenDailyBonusStatus, claimDailyBonusClient } from '../../config/firebaseConfig'
 
-const DailyBonusComponent = () => {
-  const [bonusStatus, setBonusStatus] = useState({ canClaim: false, hoursRemaining: 0 })
-  const promptedRef = useRef(false)
-
-  const claimDailyBonus = useCallback(async () => {
-    try {
-      const user = auth.currentUser
-      if (!user) return
-      const res = await claimDailyBonusClient(user.uid)
-      Alert.alert('Bonus quotidien', res.message)
-      // On réinitialise le flag pour autoriser une nouvelle alerte le lendemain
-      promptedRef.current = false
-    } catch (error) {
-      console.error('Erreur lors de la réclamation du bonus:', error)
-      Alert.alert('Erreur', "Impossible de réclamer le bonus.")
-    }
-  }, [])
+export default function DailyBonus({ buttonStyle, textStyle }) {
+  const [canClaim, setCanClaim] = useState(false)
+  const [justClaimed, setJustClaimed] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const user = auth.currentUser
     if (!user) return
-
-    const unsubscribe = listenDailyBonusStatus(user.uid, setBonusStatus)
-    return () => unsubscribe()
+    const unsub = listenDailyBonusStatus(user.uid, (s) => {
+      setCanClaim(!!(s && s.canClaim))
+      if (!(s && s.canClaim)) setJustClaimed(false)
+    })
+    return () => unsub()
   }, [])
 
-  useEffect(() => {
-    if (bonusStatus.canClaim && !promptedRef.current) {
-      promptedRef.current = true
-      Alert.alert(
-        'Bonus quotidien',
-        'Vous pouvez réclamer votre bonus quotidien !',
-        [
-          { text: 'Réclamer', onPress: claimDailyBonus },
-          { text: 'Plus tard', style: 'cancel' }
-        ]
-      )
+  const onPress = useCallback(async () => {
+    if (loading) return
+    const user = auth.currentUser
+    if (!user) return
+    try {
+      setLoading(true)
+      const res = await claimDailyBonusClient(user.uid)
+      Alert.alert('Bonus quotidien', (res && res.message) || 'Opération effectuée.')
+      if (res && res.status === 'success') {
+        setJustClaimed(true) // masque immédiatement le bouton
+      }
+    } catch (e) {
+      console.error(e)
+      Alert.alert('Erreur', "Impossible de réclamer le bonus.")
+    } finally {
+      setLoading(false)
     }
-  }, [bonusStatus.canClaim, claimDailyBonus])
+  }, [loading])
+
+  // N'affiche le bouton 🎁 que si claimable et pas déjà réclamé localement
+  if (!canClaim || justClaimed) return null
 
   return (
-    <View style={{ alignItems: 'center', marginBottom: 16 }}>
-      {bonusStatus.canClaim ? (
-        <>
-          <Text style={{ color: '#fff', marginBottom: 8 }}>
-            Vous pouvez réclamer votre bonus quotidien !
-          </Text>
-          <TouchableOpacity
-            onPress={claimDailyBonus}
-            style={{
-              backgroundColor: '#e94560',
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-              borderRadius: 20
-            }}
-          >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Réclamer maintenant</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <Text style={{ color: '#ccc' }}>
-          Temps restant avant de pouvoir réclamer le bonus : {bonusStatus.hoursRemaining} heures
-        </Text>
-      )}
-    </View>
+    <TouchableOpacity
+      accessibilityLabel="Réclamer le bonus quotidien"
+      onPress={onPress}
+      disabled={loading}
+      style={buttonStyle}
+      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+    >
+      <Text style={textStyle}>🎁</Text>
+    </TouchableOpacity>
   )
 }
-
-export default DailyBonusComponent
