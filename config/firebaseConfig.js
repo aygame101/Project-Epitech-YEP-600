@@ -77,48 +77,89 @@ export const auth = initializeAuth(getApps()[0], {
 export const db = getFirestore()
 
 /* ==================== BONUS QUOTIDIEN ==================== */
+export const DAILY_BONUS_INTERVAL_MS = 30 * 1000;         // TEST: 30s  (PROD: 24*60*60*1000)
+export const DAILY_BONUS_GRACE_MS    = 60 * 1000;         // TEST: 60s  (PROD: 48*60*60*1000)
+export const DAILY_BONUS_BASE        = 100;
+export const DAILY_BONUS_STEP        = 100;
+export const DAILY_BONUS_CAP         = 7;
+
 export function listenDailyBonusStatus(userId, callback) {
-  if (!userId) return () => { }
-  const userDocRef = doc(db, 'Users', userId)
-  const unsubscribe = onSnapshot(userDocRef, (snap) => {
-    const data = snap.data() || {}
-    const lastField = data.lastDailyBonusClaimedAt
+  if (!userId) return () => {};
+  const userDocRef = doc(db, 'Users', userId);
+
+  return onSnapshot(userDocRef, (snap) => {
+    const data = snap.data() || {};
+    const lastField = data.lastDailyBonusClaimedAt;
     const last =
       lastField instanceof Timestamp ? lastField.toMillis()
-        : typeof lastField === 'number' ? lastField : 0
-    const now = Date.now()
-    const ONE_DAY_MS = /* 24 * 60 * */60 * 1000 //1minutes pour les test, enlever le com pour remettre 24h
-    const canClaim = now - last >= ONE_DAY_MS
-    const timeRemaining = canClaim ? 0 : (last + ONE_DAY_MS) - now
-    const hoursRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60))
-    callback({ canClaim, hoursRemaining })
-  })
-  return unsubscribe
+        : typeof lastField === 'number' ? lastField : 0;
+
+    const streak = Number(data.dailyBonusStreak || 0);
+    const now = Date.now();
+
+    const canClaim = last === 0 ? true : (now - last) >= DAILY_BONUS_INTERVAL_MS;
+    const timeRemainingMs = canClaim ? 0 : Math.max(0, (last + DAILY_BONUS_INTERVAL_MS) - now);
+
+    // fenêtre de grâce pour conserver la streak (jusqu'à last + 2*DAILY_BONUS_INTERVAL_MS)
+    const graceEnd = last ? (last + DAILY_BONUS_INTERVAL_MS * 2) : 0;
+    const graceRemainingMs = last ? Math.max(0, graceEnd - now) : 0;
+
+    // montant si on réclame maintenant
+    const nextStreak = Math.min((streak || 0) + 1, DAILY_BONUS_CAP);
+    const nextAmount = DAILY_BONUS_BASE + DAILY_BONUS_STEP * (nextStreak - 1);
+
+    callback({
+      canClaim,
+      timeRemainingMs,
+      graceRemainingMs,
+      streak,
+      nextAmount,
+      cap: DAILY_BONUS_CAP,
+    });
+  });
 }
 
 export async function claimDailyBonusClient(uid) {
-  const ONE_DAY_MS = /* 24 * 60 * */60 * 1000 //1minutes pour les test, enlever le com pour remettre 24h
-  const BONUS_AMOUNT = 100
   const ref = doc(db, 'Users', uid)
   return await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref)
     if (!snap.exists()) throw new Error('profil-not-found')
+
     const data = snap.data() || {}
     const lastField = data.lastDailyBonusClaimedAt
     const last =
       lastField instanceof Timestamp ? lastField.toMillis()
         : typeof lastField === 'number' ? lastField : 0
+    const oldStreak = Number(data.dailyBonusStreak || 0)
     const now = Date.now()
-    if (now - last < ONE_DAY_MS) {
-      // const hrs = Math.ceil(((last + ONE_DAY_MS) - now) / (1000 * 60 * 60)) // heures normal, enlever com pour remettre 24h
-      const minutes = Math.ceil(remaining / (1000 * 60)) //minutes pour tests
-      return { status: 'failure', message: `Revenez dans ${minutes} heure(s) pour votre prochain bonus.` }
+
+    const dt = last ? (now - last) : Number.POSITIVE_INFINITY
+    const canContinue = last > 0 && dt >= DAILY_BONUS_INTERVAL_MS && dt < DAILY_BONUS_GRACE_MS
+    const canClaimNow = last === 0 || dt >= DAILY_BONUS_INTERVAL_MS
+
+    if (!canClaimNow) {
+      const remaining = (last + DAILY_BONUS_INTERVAL_MS) - now
+      const secs = Math.ceil(remaining / 1000)
+      return { status: 'failure', message: `Trop tôt. Réessaie dans ${secs}s.` }
     }
+
+    const newStreak = last === 0 ? 1 : (canContinue ? Math.min(oldStreak + 1, DAILY_BONUS_CAP) : 1)
+    const amount = DAILY_BONUS_BASE + DAILY_BONUS_STEP * (newStreak - 1)
+
+    // DEBUG facultatif (utile si ça rebloque) :
+    // console.log({ dt, last, oldStreak, newStreak, amount })
+
     tx.update(ref, {
-      walletBalance: increment(BONUS_AMOUNT),
-      lastDailyBonusClaimedAt: serverTimestamp()
+      walletBalance: increment(amount),
+      lastDailyBonusClaimedAt: serverTimestamp(),
+      dailyBonusStreak: newStreak,
     })
-    return { status: 'success', message: `Bonus de ${BONUS_AMOUNT} réclamé !` }
+
+    return {
+      status: 'success',
+      message: `Bonus de ${amount} réclamé ! (Jour ${newStreak}/${DAILY_BONUS_CAP})`,
+      amount, newStreak,
+    }
   })
 }
 
