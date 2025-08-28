@@ -1,14 +1,13 @@
 // app/chat/index.tsx
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  View, Text, TextInput, FlatList, TouchableOpacity,
-  Image, StyleSheet, ActivityIndicator
+  View, Text, TextInput, TouchableOpacity,
+  Image, StyleSheet, ActivityIndicator, SectionList
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { auth } from '../../config/firebaseConfig'
-import { searchUsersByPrefix, updateFavoris, listenFavoritesMap } from '../../config/firebaseConfig'
-import { onAuthStateChanged } from 'firebase/auth' // <-- NEW
+import { searchUsersByPrefix, updateFavoris, listenFavoritesMap, auth } from '../../config/firebaseConfig'
+import { onAuthStateChanged } from 'firebase/auth'
 
 const ICON_SIZE = 36
 const ACCENT = '#e94560'
@@ -19,7 +18,7 @@ type UserRow = {
   displayName?: string
   usernameLower: string
   avatarUrl?: string
-  // on ne stocke plus favoris ici: il vient de favMap
+  favoris?: 0 | 1
 }
 
 export default function ChatDirectory() {
@@ -57,7 +56,7 @@ export default function ChatDirectory() {
       try {
         const res = await searchUsersByPrefix(q, 50)
         const filtered: UserRow[] = res.filter((u: any) => u.uid !== me?.uid)
-        if (alive) setRows(filtered) // pas de favoris ici: ils viennent de favMap
+        if (alive) setRows(filtered as UserRow[])
       } catch (e: any) {
         console.warn('[chat/index] search error:', e?.message || e)
         if (alive) {
@@ -72,17 +71,17 @@ export default function ChatDirectory() {
     return () => { alive = false; clearTimeout(t) }
   }, [q, me?.uid])
 
-  // --- NEW: on enrichit à l’affichage (pas dans rows)
-  const enrichedRows = useMemo(() => {
-    return rows.map(r => ({ ...r, favoris: favMap[r.uid] ?? 0 as 0 | 1 }))
+  // Enrichit avec favoris (source de vérité = favMap)
+  const enrichedRows = useMemo<UserRow[]>(() => {
+    return rows.map(r => ({ ...r, favoris: favMap[r.uid] ?? 0 }))
   }, [rows, favMap])
 
   // Tri: favoris d'abord, puis alpha
-  const sortedRows = useMemo(() => {
+  const sortedRows = useMemo<UserRow[]>(() => {
     const clone = [...enrichedRows]
     clone.sort((a, b) => {
-      const fa = (a as any).favoris ? 1 : 0
-      const fb = (b as any).favoris ? 1 : 0
+      const fa = a.favoris ? 1 : 0
+      const fb = b.favoris ? 1 : 0
       if (fa !== fb) return fb - fa
       const nameA = (a.displayName ?? a.usernameLower ?? '').toLocaleLowerCase()
       const nameB = (b.displayName ?? b.usernameLower ?? '').toLocaleLowerCase()
@@ -91,17 +90,31 @@ export default function ChatDirectory() {
     return clone
   }, [enrichedRows])
 
-  const openUser = (u: UserRow & { favoris?: 0 | 1 }) => {
+  // Découpage en sections
+  const favRows = useMemo(() => sortedRows.filter(r => r.favoris === 1), [sortedRows])
+  const otherRows = useMemo(() => sortedRows.filter(r => !r.favoris), [sortedRows])
+
+  const sections = useMemo(() => {
+    if (favRows.length > 0) {
+      return [
+        { title: '⭐ Favoris', data: favRows },
+        { title: 'Tous les joueurs', data: otherRows }
+      ]
+    }
+    return [{ title: 'Joueurs', data: sortedRows }]
+  }, [favRows, otherRows, sortedRows])
+
+  const openUser = (u: UserRow) => {
     router.push({ pathname: '/chat/[otherUid]', params: { otherUid: u.uid, dn: u.displayName ?? u.usernameLower } })
   }
 
-  const toggleFavoris = async (u: UserRow & { favoris?: 0 | 1 }) => {
+  const toggleFavoris = async (u: UserRow) => {
     if (!me?.uid) return
     if (busy[u.uid]) return
     const current = favMap[u.uid] ?? 0
     const next = (current ? 0 : 1) as 0 | 1
 
-    // --- NEW: UI optimiste via favMap (source de vérité)
+    // UI optimiste via favMap
     setBusy(prev => ({ ...prev, [u.uid]: true }))
     setFavMap(prev => ({ ...prev, [u.uid]: next }))
 
@@ -121,7 +134,7 @@ export default function ChatDirectory() {
     }
   }
 
-  const renderItem = ({ item }: { item: UserRow & { favoris?: 0 | 1 } }) => (
+  const renderItem = ({ item }: { item: UserRow }) => (
     <TouchableOpacity style={styles.row} onPress={() => openUser(item)} activeOpacity={0.8}>
       {item.avatarUrl ? (
         <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
@@ -138,7 +151,7 @@ export default function ChatDirectory() {
         <Text style={styles.sub}>@{item.usernameLower}</Text>
       </View>
 
-      {/* bouton favoris (+ / 🌟) */}
+      {/* bouton favoris (+ / ⭐) */}
       <TouchableOpacity
         onPress={(e) => { e.stopPropagation(); toggleFavoris(item) }}
         disabled={!!busy[item.uid]}
@@ -148,12 +161,18 @@ export default function ChatDirectory() {
         accessibilityLabel={item.favoris ? 'Retirer des favoris' : 'Ajouter aux favoris'}
       >
         <Text style={[styles.favEmoji, busy[item.uid] && { opacity: 0.5 }]}>
-          {item.favoris ? '🌟' : '+'}
+          {item.favoris ? '⭐' : '+'}
         </Text>
       </TouchableOpacity>
 
       <Text style={styles.cta}>›</Text>
     </TouchableOpacity>
+  )
+
+  const renderSectionHeader = ({ section }: { section: { title: string } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+    </View>
   )
 
   const goBack = () => {
@@ -198,10 +217,12 @@ export default function ChatDirectory() {
       )}
 
       {!loading && !err && sortedRows.length > 0 && (
-        <FlatList
-          data={sortedRows}
+        <SectionList
+          sections={sections}
           keyExtractor={(it) => it.uid}
           renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled
           contentContainerStyle={{ paddingBottom: 30 }}
           keyboardShouldPersistTaps="handled"
         />
@@ -232,6 +253,7 @@ const styles = StyleSheet.create({
   error: { color: '#ffb3be', marginTop: 12, textAlign: 'center' },
   empty: { color: 'rgba(255,255,255,0.7)', marginTop: 12, textAlign: 'center' },
 
+  // Items
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.12)'
@@ -244,5 +266,17 @@ const styles = StyleSheet.create({
   favBtn: { paddingHorizontal: 8, paddingVertical: 4 },
   favEmoji: { fontSize: 22, color: '#fff' },
 
-  cta: { color: ACCENT, fontSize: 28, fontWeight: '900', paddingHorizontal: 6 }
+  cta: { color: ACCENT, fontSize: 28, fontWeight: '900', paddingHorizontal: 6 },
+
+  // Sections
+  sectionHeader: {
+    paddingTop: 12, paddingBottom: 6,
+    backgroundColor: BG
+  },
+  sectionTitle: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3
+  },
 })
