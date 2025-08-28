@@ -1,7 +1,9 @@
 module.exports = {
-  "preset": "jest-expo",
-  "transform": {
-    "^.+\\.[jt]sx?$": "babel-jest"
+  preset: 'jest-expo',          
+  testEnvironment: 'jsdom',     
+  transform: {
+    '^.+\\.[jt]sx?$': 'babel-jest',
   },
-  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"]
-}
+  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
+  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'], 
+};
