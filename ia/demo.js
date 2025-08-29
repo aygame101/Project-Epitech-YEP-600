@@ -70,14 +70,14 @@ const demoUsers = [
 // Afficher les recommandations pour un utilisateur
 function displayRecommendations(userName, userData) {
   console.log(`\nRECOMMANDATIONS POUR ${userName.toUpperCase()}`);
-  console.log('=' .repeat(50));
-  
+  console.log('='.repeat(50));
+
   const recommendations = getGameRecommendations(userData);
-  
+
   console.log(`Score utilisateur: ${recommendations.userScore}`);
   console.log(`Niveau: ${recommendations.difficultyLevel}`);
   console.log(`Conseil general: ${recommendations.overallRecommendation}`);
-  
+
   console.log('\nRecommandations par jeu:');
   Object.entries(recommendations.games).forEach(([gameType, gameData]) => {
     console.log(`\n  ${gameType === 'blackjack' ? 'B' : 'S'} ${gameData.name}`);
@@ -85,7 +85,7 @@ function displayRecommendations(userName, userData) {
     console.log(`    Difficulte: ${gameData.difficulty}`);
     console.log(`    Mise recommandee: ${gameData.betRange.min}€ - ${gameData.betRange.max}€`);
     console.log(`    Strategie: ${gameData.strategy}`);
-    
+
     const tips = getPersonalizedTips(userData, gameType);
     console.log(`    Conseils:`);
     tips.forEach(tip => console.log(`      - ${tip}`));
@@ -95,40 +95,40 @@ function displayRecommendations(userName, userData) {
 // Executer la demonstration complete
 function runDemo() {
   console.log('DEMONSTRATION DU SYSTEME DE RECOMMANDATION');
-  console.log('=' .repeat(60));
-  
+  console.log('='.repeat(60));
+
   demoUsers.forEach(user => {
     displayRecommendations(user.name, user.data);
   });
-  
+
   console.log('\nDemonstration terminee!');
 }
 
 // Tester un utilisateur specifique
 function testUser(userData) {
   console.log('\nTEST D\'UN UTILISATEUR SPECIFIQUE');
-  console.log('=' .repeat(50));
-  
+  console.log('='.repeat(50));
+
   const score = analyzeUserPerformance(userData);
   console.log(`Score calcule: ${score}`);
-  
+
   const recommendations = getGameRecommendations(userData);
   console.log(`Niveau recommande: ${recommendations.difficultyLevel}`);
-  
+
   return recommendations;
 }
 
 // Comparer deux utilisateurs
 function compareUsers(user1Data, user2Data) {
   console.log('\nCOMPARAISON DE DEUX UTILISATEURS');
-  console.log('=' .repeat(50));
-  
+  console.log('='.repeat(50));
+
   const score1 = analyzeUserPerformance(user1Data);
   const score2 = analyzeUserPerformance(user2Data);
-  
+
   console.log(`Utilisateur 1 - Score: ${score1}`);
   console.log(`Utilisateur 2 - Score: ${score2}`);
-  
+
   if (score1 > score2) {
     console.log('L\'utilisateur 1 a un meilleur score');
   } else if (score2 > score1) {
@@ -136,7 +136,7 @@ function compareUsers(user1Data, user2Data) {
   } else {
     console.log('Les deux utilisateurs ont le meme score');
   }
-  
+
   return { score1, score2 };
 }
 
@@ -145,4 +145,4 @@ module.exports = {
   testUser,
   compareUsers,
   demoUsers
-}; 
+};

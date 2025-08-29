@@ -17,13 +17,6 @@ export default function TabsLayout() {
           tabBarLabel: 'Accueil',
         }}
       />
-      <Tabs.Screen
-        name="defslot"
-        options={{
-          title: 'Slot',
-          tabBarLabel: 'Slot',
-        }}
-      />
     </Tabs>
   )
 }

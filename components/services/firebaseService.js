@@ -1,4 +1,4 @@
-// components/routes/firebaseService.js
+// components/service/firebaseService.js
 import { db } from '../../config/firebaseConfig'
 import { doc, getDoc } from 'firebase/firestore'
 

@@ -1,4 +1,4 @@
-// components/routes/gameStatsService.js
+// components/service/gameStatsService.js
 import { db } from '../../config/firebaseConfig'
 import {
     doc, getDoc, collection, query, where, orderBy, limit, getDocs, Timestamp
