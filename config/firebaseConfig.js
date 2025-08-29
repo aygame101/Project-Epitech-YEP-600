@@ -31,15 +31,15 @@ function _isParisDST(dateUtc) {
   end.setUTCHours(1, 0, 0, 0)        // 01:00 UTC
   return dateUtc >= start && dateUtc < end
 }
-function _parisOffsetMs(dateUtc=new Date()) {
+function _parisOffsetMs(dateUtc = new Date()) {
   // Paris = UTC+1 (hiver) ou UTC+2 (été)
   return _isParisDST(dateUtc) ? 2 * 3600000 : 1 * 3600000
 }
-function _parisNow(dateUtc=new Date()) {
+function _parisNow(dateUtc = new Date()) {
   return new Date(dateUtc.getTime() + _parisOffsetMs(dateUtc))
 }
 /** Clé semaine: 'YYYY-MM-DD' (lundi 00:00 heure de Paris) */
-export function getCurrentParisWeekKey(dateUtc=new Date()) {
+export function getCurrentParisWeekKey(dateUtc = new Date()) {
   const p = _parisNow(dateUtc)
   // p est “Paris local” simulé en UTC; on utilise getters UTC pour rester cohérents
   const dow = p.getUTCDay() // 0..6 (0=dimanche)
@@ -414,4 +414,68 @@ export async function markRead({ cid, uid }) {
   } else {
     await updateDoc(mref, { lastReadAt: serverTimestamp() })
   }
+}
+
+
+// ==================== FAVORIS ====================
+export async function updateFavoris(otherUid, favoris) {
+  const myUid = auth.currentUser?.uid
+  if (!myUid) throw new Error("not-authenticated")
+  if (!otherUid) throw new Error("missing-otherUid")
+
+  const ref = doc(db, "Users", myUid, "favorites", otherUid)
+  await setDoc(ref, { favoris, updatedAt: serverTimestamp() }, { merge: true })
+}
+
+// Ecoute live => { [otherUid]: 0|1, ... }
+export function listenFavoritesMap(myUid, callback) {
+  if (!myUid) return () => { }
+  const ref = collection(db, "Users", myUid, "favorites")
+  const unsub = onSnapshot(
+    ref,
+    (snap) => {
+      const map = {}
+      snap.forEach(d => {
+        const data = d.data() || {}
+        map[d.id] = (data.favoris === 1 ? 1 : 0)
+      })
+      callback(map)
+    },
+    (err) => {
+      console.warn('[listenFavoritesMap] snapshot error:', err?.code, err?.message)
+      callback({}) // fallback
+    })
+  return unsub
+}
+
+// ==================== CHAT back (fond par conversation) ====================
+
+// Sauvegarder le code de fond pour la conversation avec otherUid
+export async function saveChatBgPreference(otherUid, bgCode) {
+  const myUid = auth.currentUser?.uid
+  if (!myUid) throw new Error('not-authenticated')
+  if (!otherUid) throw new Error('missing-otherUid')
+  await setDoc(
+    doc(db, 'Users', myUid, 'chat_prefs', String(otherUid)),
+    { bgCode: String(bgCode), updatedAt: serverTimestamp() },
+    { merge: true }
+  )
+}
+
+// Écoute live du code de fond
+export function listenChatBgPreference(myUid, otherUid, callback) {
+  if (!myUid || !otherUid) return () => { }
+  const ref = doc(db, 'Users', String(myUid), 'chat_prefs', String(otherUid))
+  const unsub = onSnapshot(
+    ref,
+    (snap) => {
+      const data = snap.exists() ? (snap.data() || {}) : {}
+      callback(data.bgCode || null)
+    },
+    (err) => {
+      // ⚠️ Empêche le crash en cas de permission-denied
+      console.warn('[listenChatBgPreference] snapshot error:', err?.code, err?.message)
+      callback(null) // applique un fond par défaut côté UI
+    })
+  return unsub
 }
