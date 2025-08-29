@@ -367,7 +367,8 @@ export default function SlotGameWebView() {
         function getRandomSymbol() { return Phaser.Utils.Array.GetRandom(weighted); }
 
         let reels, symbolSize, visibleRows, spacingX, spinBtn, winGraphics, winTotalText;
-        let tokenText, backBtn, betText;
+        let tokenText, backBtn, betText, betBtn;
+        let isSpinning = false;
 
         new Phaser.Game({
             type: Phaser.AUTO,
@@ -388,23 +389,25 @@ export default function SlotGameWebView() {
 
         function create() {
             const { width, height } = this.scale;
+
             // display balance
             tokenText = this.add.text(width - 60, 20, 'Jetons: ' + tokens, { font: '40px Arial', fill: '#f70000' })
                 .setOrigin(1, 0).setDepth(10);
+
             // display current bet
             betText = this.add.text(width - 60, 60, 'Bet: ' + currentBet, { font: '32px Arial', fill: '#f70000' })
                 .setOrigin(1, 0).setDepth(10);
 
-            // Ajoute bouton “Retour” en haut à gauche
+            // Bouton retour (bloqué si spinning)
             backBtn = this.add.image(70, 55, 'back')
                 .setDisplaySize(120, 120)
                 .setInteractive()
                 .setScrollFactor(0)
                 .setDepth(20);
             backBtn.on('pointerdown', () => {
+                if (isSpinning) return; // lock pendant spin
                 window.ReactNativeWebView.postMessage(JSON.stringify({ action: 'goBack' }));
             });
-
 
             // reel setup
             symbolSize = Math.round(128 * 0.85);
@@ -417,7 +420,6 @@ export default function SlotGameWebView() {
                 const c = this.add.container(startX + i * spacingX, height / 2);
                 for (let r = 0; r < visibleRows; r++) {
                     const y = (r - 1) * symbolSize;
-                    // on remplace getRandomSymbol() par 'diamond'
                     c.add(
                         this.add
                             .image(0, y, 'seven')
@@ -429,34 +431,57 @@ export default function SlotGameWebView() {
             }
             this.add.image(width / 2, height / 2, 'frame').setDisplaySize(width, height);
 
-            // spin button
+            // spin button (ne se réactive pas si isSpinning=true)
             spinBtn = this.add.image(width / 2 + 150, height - 100, 'spin')
                 .setDisplaySize(120, 120).setDepth(10)
-                .setInteractive().on('pointerdown', () => spin.call(this));
+                .setInteractive()
+                .on('pointerdown', () => {
+                    if (isSpinning) return;
+                    spin.call(this);
+                });
             if (tokens < currentBet) spinBtn.disableInteractive();
 
-            // bet button left of spin
+            // bet button (bloqué si spinning, et ne réactive pas spin en cours de spin)
             let betIndex = 0;
-            this.add.image(width / 2 - 150, height - 100, 'betBtn')
+            betBtn = this.add.image(width / 2 - 150, height - 100, 'betBtn')
                 .setDisplaySize(120, 120).setDepth(10).setInteractive()
                 .on('pointerdown', () => {
+                    if (isSpinning) return; // lock pendant spin
                     betIndex = (betIndex + 1) % BET_OPTIONS.length;
                     currentBet = BET_OPTIONS[betIndex];
                     activeLineCount = PAYLINE_COUNTS[currentBet];
                     betText.setText('Bet: ' + currentBet);
-                    spinBtn.setInteractive(tokens >= currentBet);
+
+                    // Ne réactive le spin que si on n'est pas en train de spinner
+                    if (!isSpinning && tokens >= currentBet) {
+                        spinBtn.setInteractive();
+                    } else {
+                        spinBtn.disableInteractive();
+                    }
                 });
         }
 
+
         function spin() {
+            if (isSpinning) return;
             if (tokens < currentBet) return;
-            if (winTotalText) { winTotalText.destroy(); winTotalText = null }
+
+            isSpinning = true;
+
+            // Nettoyage visuel d'un éventuel tour précédent
+            if (winTotalText) { winTotalText.destroy(); winTotalText = null; }
             winGraphics.forEach(g => g.destroy()); winGraphics = [];
 
+            // Verrouiller tous les boutons
             spinBtn.disableInteractive();
+            if (betBtn) betBtn.disableInteractive();
+            if (backBtn) backBtn.disableInteractive();
+
+            // Débiter la mise
             tokens -= currentBet;
             tokenText.setText('Jetons: ' + tokens);
 
+            // Lancer les rouleaux
             reels.forEach((c, idx) => {
                 c.prev = 0;
                 const spins = Phaser.Math.Between(20, 25) + idx * 6;
@@ -480,6 +505,7 @@ export default function SlotGameWebView() {
                 });
             });
         }
+
 
         function evaluateResult() {
             const cx = this.scale.width / 2 - 2 * spacingX;
@@ -506,15 +532,22 @@ export default function SlotGameWebView() {
             const toPay = Object.values(map).sort((a, b) => a.coords[0][0] - b.coords[0][0]);
             const totalWin = toPay.reduce((sum, s) => sum + ((PAYTABLE[s.symbol] || {})[s.count] || 0), 0);
 
-            if (winTotalText) { winTotalText.destroy(); winTotalText = null }
+            if (winTotalText) { winTotalText.destroy(); winTotalText = null; }
             winGraphics.forEach(g => g.destroy()); winGraphics = [];
 
-            // 👉 helper pour envoyer le résultat à React Native
             const sendResult = () => {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     result: { game: 'slots', wager: currentBet, payout: totalWin, lines: activeLineCount },
-                    newBalance: tokens // juste informatif côté WebView
+                    newBalance: tokens
                 }));
+            };
+
+            const unlockAll = () => {
+                isSpinning = false;
+                // Réactiver selon l'état du solde et de la mise
+                if (tokens >= currentBet) spinBtn.setInteractive(); else spinBtn.disableInteractive();
+                if (betBtn) betBtn.setInteractive();
+                if (backBtn) backBtn.setInteractive();
             };
 
             if (toPay.length > 0) {
@@ -527,6 +560,7 @@ export default function SlotGameWebView() {
                             j === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
                         });
                         g.strokePath(); winGraphics.push(g);
+
                         if (i === toPay.length - 1) {
                             if (totalWin > 0) {
                                 tokens += totalWin;
@@ -538,17 +572,18 @@ export default function SlotGameWebView() {
                                     { font: '40px Arial', fill: '#00ff00' }
                                 ).setOrigin(0.5);
                             }
-                            spinBtn.setInteractive(tokens >= currentBet);
                             sendResult();
+                            unlockAll();
                         }
                     });
                 });
             } else {
                 // aucune ligne gagnante
-                spinBtn.setInteractive(tokens >= currentBet);
                 sendResult();
+                unlockAll();
             }
         }
+
 
     </script>
 </body>
