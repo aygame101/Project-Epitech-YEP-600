@@ -6,4 +6,7 @@ module.exports = {
   },
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
   setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'], 
+  transformIgnorePatterns: [
+    "node_modules/(?!(expo|react-native|@react-native|@expo|@react-native-community)/)"
+  ],
 };

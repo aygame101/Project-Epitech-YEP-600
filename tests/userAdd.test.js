@@ -1,8 +1,11 @@
-// tests/auth.test.js
-import { signup, login } from '../components/services/auth';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { runTransaction, getDoc } from 'firebase/firestore';
-import { jest } from '@jest/globals';
+/**
+ * @jest-environment jsdom
+ * @typedef {import('jest')} jest
+ */
+// tests/userAdd.test.js
+const { signup, login } = require('../components/services/auth');
+const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = require('firebase/auth');
+const { runTransaction, getDoc } = require('firebase/firestore');
 
 // Mock des configs Firebase
 jest.mock('../config/firebaseConfig', () => ({
@@ -16,6 +19,7 @@ jest.mock('firebase/firestore');
 describe('signup', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
   });
 
   it('crée un compte avec username valide', async () => {
@@ -58,11 +62,18 @@ describe('signup', () => {
       .rejects
       .toThrow('username-taken');
   });
+
+  it('rejette si mot de passe vide', async () => {
+    await expect(signup('test@example.com', 'PlayerOne', ''))
+      .rejects
+      .toThrow();
+  });
 });
 
 describe('login', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
   });
 
   it('connecte un utilisateur avec email et mot de passe valides', async () => {

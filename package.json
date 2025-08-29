@@ -59,6 +59,7 @@
     "@babel/preset-env": "^7.28.3",
     "@babel/preset-react": "^7.27.1",
     "@types/react": "~19.0.10",
+    "@testing-library/jest-native": "^5.0.0",
     "babel-jest": "^30.0.5",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
