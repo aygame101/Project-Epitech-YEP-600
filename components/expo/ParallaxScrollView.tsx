@@ -9,7 +9,7 @@ import Animated, {
 
 import { ThemedView } from '@/components/expo/ThemedView';
 import { useBottomTabOverflow } from '@/components/expo/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@/hooks/react/useColorScheme';
 
 const HEADER_HEIGHT = 250;
 

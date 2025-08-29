@@ -1,5 +1,5 @@
-// components/Scoreboard.tsx
-import React, { useEffect, useState } from 'react'
+// app/(tabs)/Scoreboard.tsx
+import React, { useState } from 'react'
 import {
     View,
     Text,
@@ -9,125 +9,64 @@ import {
     ActivityIndicator,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { listenWeeklyScoreboardTop, listenScoreboardTop } from '../../config/firebaseConfig'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-type Row = {
-    id: string
-    userName?: string
-    userNameLower?: string
-    totalPayout: number
-}
-
-type Mode = 'weekly' | 'global'
+import SegmentToggle from '../../components/scoreboard/SegmentToggle'
+import ScoreRow from '../../components/scoreboard/ScoreRow'
+import { useScoreboardTop, type Mode } from '../../hooks/home/useScoreboard'
+import { COLORS } from '../../constants/layout'
 
 export default function Scoreboard({ topN = 10 }: { topN?: number }) {
     const navigation = useNavigation()
-    const [rows, setRows] = useState<Row[]>([])
-    const [loading, setLoading] = useState(true)
-    const [mode, setMode] = useState<Mode>('weekly') // 'weekly' par défaut
+    const [mode, setMode] = useState<Mode>('weekly')
 
-    useEffect(() => {
-        setLoading(true)
-        const onRows = (data: Row[]) => {
-            setRows(data ?? [])
-            setLoading(false)
-        }
-
-        const unsub =
-            mode === 'weekly'
-                ? listenWeeklyScoreboardTop(topN, onRows)
-                : listenScoreboardTop(topN, onRows)
-
-        return () => { if (typeof unsub === 'function') unsub() }
-    }, [topN, mode])
-
-    const renderItem = ({ item, index }: { item: Row; index: number }) => {
-        const isTop3 = index < 3
-        const medal = ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`
-
-        return (
-            <View style={[styles.row, isTop3 && styles.topRow]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.rank}>{medal}</Text>
-                    <Text style={styles.name} numberOfLines={1}>
-                        {item.userName || item.userNameLower || 'Joueur'}
-                    </Text>
-                </View>
-                <Text style={styles.net}>{formatJets(item.totalPayout)}</Text>
-            </View>
-        )
-    }
+    const { rows, loading } = useScoreboardTop(topN, mode)
 
     if (loading) {
         return (
-            <View style={styles.loader}>
-                <ActivityIndicator size="large" color="#e94560" />
-            </View>
+            <SafeAreaView style={styles.loader} edges={['top', 'bottom']}>
+                <ActivityIndicator size="large" color={COLORS.accent} />
+            </SafeAreaView>
         )
     }
 
     return (
-        <View style={styles.container}>
-            {/* Titre centré */}
-            <Text style={styles.title}>🏆 {mode === 'weekly' ? 'Gains (Cette semaine)' : 'Gains (Global)'} </Text>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+            <View style={[styles.container, { paddingTop: 15, paddingBottom: 0 }]}>
+                <Text style={styles.title}>
+                    🏆 {mode === 'weekly' ? 'Gains (Cette semaine)' : 'Gains (Global)'}
+                </Text>
 
-            {/* Toggle Semaine / Toujours */}
-            <View style={styles.segment}>
-                <TouchableOpacity
-                    style={[styles.segmentBtn, mode === 'weekly' && styles.segmentBtnActive]}
-                    onPress={() => setMode('weekly')}
-                >
-                    <Text style={[styles.segmentText, mode === 'weekly' && styles.segmentTextActive]}>
-                        Cette semaine
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.segmentBtn, mode === 'global' && styles.segmentBtnActive]}
-                    onPress={() => setMode('global')}
-                >
-                    <Text style={[styles.segmentText, mode === 'global' && styles.segmentTextActive]}>
-                        Global
-                    </Text>
+                <SegmentToggle mode={mode} onChange={setMode} />
+
+                <Text style={styles.legendText}>(Total Gagné)</Text>
+
+                <FlatList
+                    style={{ alignSelf: 'stretch' }}
+                    data={rows}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item, index }) => <ScoreRow item={item} index={index} />}
+                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                    ListEmptyComponent={<Text style={styles.empty}>Aucun joueur pour le moment.</Text>}
+                    contentContainerStyle={{ paddingBottom: 24 }}
+                />
+
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Text style={styles.backText}>← Retour</Text>
                 </TouchableOpacity>
             </View>
-
-            {/* Légende colonne droite (tu gardes ton indicateur actuel) */}
-            <Text style={{ color: '#ccc', marginBottom: 8 }}>(Total Gagné)</Text>
-
-            <FlatList
-                style={{ alignSelf: 'stretch' }}
-                data={rows}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-                ListEmptyComponent={
-                    <Text style={styles.empty}>Aucun joueur pour le moment.</Text>
-                }
-                contentContainerStyle={{ paddingBottom: 24 }}
-            />
-
-            <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-            >
-                <Text style={styles.backText}>← Retour</Text>
-            </TouchableOpacity>
-        </View>
+        </SafeAreaView>
     )
 }
 
-function formatJets(n: number) {
-    try {
-        return `${Intl.NumberFormat('fr-FR').format(n)} jets`
-    } catch {
-        return `${n} jets`
-    }
-}
-
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: COLORS.bg,
+    },
     loader: {
         flex: 1,
-        backgroundColor: '#1a1a2e',
+        backgroundColor: COLORS.bg,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -135,92 +74,37 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'flex-start',
         alignItems: 'center',
-        backgroundColor: '#1a1a2e',
-        padding: 20,
-        paddingTop: 60,
+        backgroundColor: COLORS.bg,
+        paddingHorizontal: 20,
     },
     title: {
-        fontSize: 28,
-        marginBottom: 6,
-        color: '#fff',
+        fontSize: 26,
+        marginBottom: 12,
+        color: COLORS.accent,
         fontWeight: 'bold',
         textAlign: 'center',
+        textShadowColor: 'rgba(255, 62, 128, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
     },
-    subtitle: {
+    legendText: {
         color: '#ccc',
-        marginBottom: 14,
-    },
-
-    // Toggle
-    segment: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: 'rgba(233,69,96,0.6)',
-        padding: 4,
-        marginBottom: 10,
-        gap: 6,
-    },
-    segmentBtn: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 999,
-        backgroundColor: 'transparent',
-    },
-    segmentBtnActive: {
-        backgroundColor: 'rgba(233,69,96,0.15)',
-    },
-    segmentText: {
-        color: '#ccc',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    segmentTextActive: {
-        color: '#e94560',
-    },
-
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignSelf: 'stretch',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-    },
-    topRow: {
-        backgroundColor: 'rgba(233, 69, 96, 0.12)',
-    },
-    rank: {
-        width: 34,
-        color: '#e94560',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    name: {
-        color: '#fff',
-        fontSize: 16,
-        maxWidth: 220,
-    },
-    net: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+        marginBottom: 8,
     },
     separator: {
         height: 10,
     },
     backButton: {
         marginTop: 20,
-        borderWidth: 1,
-        borderColor: '#e94560',
+        borderWidth: 2,
+        borderColor: COLORS.accent,
         paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 25,
+        paddingHorizontal: 30,
+        borderRadius: 12,
+        backgroundColor: 'transparent',
     },
     backText: {
-        color: '#e94560',
+        color: COLORS.accent,
         fontSize: 16,
         fontWeight: '600',
     },

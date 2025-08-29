@@ -1,7 +1,7 @@
 import { StyleSheet, Pressable } from 'react-native';
 import { ThemedText } from '@/components/expo/ThemedText';
 import { ThemedView } from '@/components/expo/ThemedView';
-import { Auth } from '@/components/services/auth';
+import { Auth } from '@/components/login/auth';
 
 function App() {
   return (

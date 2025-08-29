@@ -13,12 +13,14 @@ Ce système analyse les performances des utilisateurs et génère des recommanda
 ## 🔍 Facteurs d'Analyse
 
 ### Score Utilisateur
+
 - **Solde du portefeuille** (20% du score max)
 - **Historique des jeux** (taux de victoire, fréquence)
 - **Progression du joueur** (ratio victoires/défaites)
 - **Activité récente** (7 derniers jours)
 
 ### Niveaux de Difficulté
+
 - **Facile** : Score < 300 (Débutants)
 - **Moyenne** : Score 300-600 (Intermédiaires)
 - **Difficile** : Score 600-900 (Avancés)
@@ -27,12 +29,14 @@ Ce système analyse les performances des utilisateurs et génère des recommanda
 ## 🎮 Jeux Supportés
 
 ### Blackjack
+
 - **Difficulté** : Moyenne
 - **Mise recommandée** : 5€ - 100€
 - **Stratégie** : Règles de base et gestion de la banque
 - **Conseils** : Éviter l'assurance, doubler sur 11
 
 ### Machine à Sous
+
 - **Difficulté** : Facile
 - **Mise recommandée** : 1€ - 50€
 - **Stratégie** : Gestion du budget et plaisir
@@ -55,6 +59,7 @@ cp config/firebaseConfig.example.js config/firebaseConfig.js
 ## 📱 Utilisation
 
 ### Composant React Native
+
 ```javascript
 import { GameRecommendationComponent } from './components/GameRecommendationComponent';
 
@@ -63,6 +68,7 @@ import { GameRecommendationComponent } from './components/GameRecommendationComp
 ```
 
 ### Service de Statistiques
+
 ```javascript
 import { getUserGameStats, recordGameResult } from './routes/gameStatsService';
 
@@ -79,6 +85,7 @@ const stats = await getUserGameStats(userId);
 ```
 
 ### API de Recommandation
+
 ```javascript
 import { getGameRecommendations, getPersonalizedTips } from './ia/recommandation';
 
@@ -113,16 +120,19 @@ components/
 ## 🔥 Services Firebase
 
 ### Collections
+
 - **users** : Profils utilisateur
 - **userGameStats** : Statistiques de jeu
 - **gameHistory** : Historique des parties
 
 ### Fonctions Cloud
+
 - **dailyBonus** : Bonus quotidien automatique
 
 ## 📊 Structure des Données
 
 ### Données Utilisateur
+
 ```javascript
 {
   userId: string,
@@ -134,6 +144,7 @@ components/
 ```
 
 ### Statistiques de Jeu
+
 ```javascript
 {
   totalGames: number,
@@ -159,6 +170,7 @@ components/
 ## 🧪 Tests et Démonstration
 
 ### Démo Interactive
+
 ```javascript
 import { runDemo, testUser, compareUsers } from './ia/demo';
 
@@ -174,6 +186,7 @@ compareUsers(user1Data, user2Data);
 ```
 
 ### Tests Automatisés
+
 ```bash
 # Lancer les tests
 npm test
@@ -185,6 +198,7 @@ node test-runner.js
 ## 🎨 Personnalisation
 
 ### Ajouter un Nouveau Jeu
+
 ```javascript
 // Dans recommandation.js
 const GAME_RECOMMENDATIONS = {
@@ -201,6 +215,7 @@ const GAME_RECOMMENDATIONS = {
 ```
 
 ### Modifier les Algorithmes
+
 ```javascript
 // Dans recommandation.js
 function analyzeUserPerformance(userData) {
@@ -240,10 +255,11 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 ## 📞 Support
 
 Pour toute question ou problème :
+
 - Ouvrir une issue sur GitHub
 - Contacter l'équipe de développement
 - Consulter la documentation Firebase
 
 ---
 
-**Développé avec ❤️ pour améliorer l'expérience des joueurs de casino** 
+**Développé avec ❤️ pour améliorer l'expérience des joueurs de casino**
