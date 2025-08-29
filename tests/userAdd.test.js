@@ -3,7 +3,7 @@
  * @typedef {import('jest')} jest
  */
 // tests/userAdd.test.js
-const { signup, login } = require('../components/services/auth');
+const { signup, login } = require('../components/login/auth');
 const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = require('firebase/auth');
 const { runTransaction, getDoc } = require('firebase/firestore');
 
