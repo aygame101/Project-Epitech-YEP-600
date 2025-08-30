@@ -1,7 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   transform: { '^.+\\.[jt]sx?$': 'babel-jest' },
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
