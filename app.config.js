@@ -18,7 +18,8 @@ expo: {
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#ffffff",
+        "windowSoftInputMode": "adjustResize"
       },
       edgeToEdgeEnabled: true
     },
