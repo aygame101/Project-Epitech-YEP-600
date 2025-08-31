@@ -2,7 +2,7 @@
 import React from 'react'
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native'
 import { Alert } from 'react-native';
-import { Auth } from '../components/login/Auth'
+import { Auth } from '../components/login/auth'
 import { signup, login } from '../components/login/auth'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 import { runTransaction, getDoc } from 'firebase/firestore'
