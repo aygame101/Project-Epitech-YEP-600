@@ -8,25 +8,13 @@ const {
 } = require('../components/services/gameStatsService');
 const { getDoc, getDocs } = require('firebase/firestore');
 
-jest.mock('firebase/firestore', () => ({
-    getDoc: jest.fn(),
-    getDocs: jest.fn(),
-    doc: jest.fn(),
-    collection: jest.fn(),
-    query: jest.fn(),
-    where: jest.fn(),
-    orderBy: jest.fn(),
-    limit: jest.fn(),
-    Timestamp: { fromDate: jest.fn() }
-}));
-
 describe('getUserGameStats', () => {
     beforeEach(() => jest.clearAllMocks());
 
     it('retourne les stats par défaut si aucun historique', async () => {
         getDoc.mockResolvedValue({ exists: () => false });
         getDocs.mockResolvedValue({
-            forEach: cb => {}
+            forEach: cb => { }
         });
         const stats = await getUserGameStats('uid');
         expect(stats.totalGames).toBe(0);
@@ -71,7 +59,7 @@ describe('getRecentPerformance', () => {
 
     it('retourne 0 si aucune partie récente', async () => {
         getDocs.mockResolvedValue({
-            forEach: cb => {}
+            forEach: cb => { }
         });
         const perf = await getRecentPerformance('uid');
         expect(perf.gamesPlayed).toBe(0);
@@ -100,7 +88,7 @@ describe('getBestPerformances', () => {
 
     it('retourne 0 si aucun tx', async () => {
         getDocs.mockResolvedValue({
-            forEach: cb => {}
+            forEach: cb => { }
         });
         const best = await getBestPerformances('uid');
         expect(best.bestWin).toBe(0);

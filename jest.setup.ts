@@ -8,7 +8,7 @@ if (!global.fetch) {
 }
 
 
-//  AsyncStorage mock (évite le module natif en tests)
+//  AsyncStorage mock
 jest.mock(
   '@react-native-async-storage/async-storage',
   () => require('@react-native-async-storage/async-storage/jest/async-storage-mock')
@@ -28,7 +28,7 @@ jest.mock('expo-router', () => ({
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'))
 
 
-//  WebView (évite le TurboModule natif)
+//  WebView
 jest.mock('react-native-webview', () => {
   const React = require('react')
   const { View } = require('react-native')
@@ -60,10 +60,8 @@ jest.mock('react-native-safe-area-context', () => ({
 }))
 
 
-//  Expo StatusBar → noop (ou bien polyfills set/clearImmediate)
+//  Expo StatusBar
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null }))
-
-
 //  Polyfills si tu ne mocks pas expo-status-bar
 if (!global.setImmediate) {
   // @ts-ignore
@@ -75,21 +73,76 @@ if (!global.clearImmediate) {
 }
 
 
-// Expo Constants mock avec extra
+// Expo Constants (fournit des "extra" factices)
 jest.mock('expo-constants', () => ({
   __esModule: true,
   default: {
     manifest: null,
-    expoConfig: {
-      extra: {
-        API_KEY: 'test',
-        AUTH_DOMAIN: 'test',
-        PROJECT_ID: 'test',
-        STORAGE_BUCKET: 'test',
-        MESSAGING_SENDER_ID: 'test',
-        APP_ID: 'test',
-        MEASUREMENT_ID: 'test',
-      },
-    },
+    expoConfig: { extra: {
+      API_KEY: 'test',
+      AUTH_DOMAIN: 'test',
+      PROJECT_ID: 'test',
+      STORAGE_BUCKET: 'test',
+      MESSAGING_SENDER_ID: 'test',
+      APP_ID: 'test',
+      MEASUREMENT_ID: 'test',
+    }},
   },
+}))
+
+
+// Firebase App
+jest.mock('firebase/app', () => ({
+  __esModule: true,
+  initializeApp: jest.fn(),
+  getApps: jest.fn(() => [{}]), // simule une app déjà initialisée
+}))
+
+
+// Firebase Auth
+jest.mock('firebase/auth', () => ({
+  __esModule: true,
+  initializeAuth: jest.fn(() => ({})),
+  getReactNativePersistence: jest.fn(() => ({})),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+}))
+
+
+// Firebase Firestore
+jest.mock('firebase/firestore', () => ({
+  __esModule: true,
+  getFirestore: jest.fn(() => ({})),
+  setLogLevel: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  runTransaction: jest.fn(),
+  serverTimestamp: jest.fn(() => 'ts'),
+
+
+  collection: jest.fn(() => ({})),
+  query: jest.fn((...args) => args),
+  where: jest.fn(() => ({})),
+  orderBy: jest.fn(() => ({})),
+  limit: jest.fn(() => ({})),
+  getDocs: jest.fn(),
+
+Timestamp: {
+  fromDate: (d: Date) => ({
+    toDate: () => d,
+    toMillis: () => d.getTime(),
+    seconds: Math.floor(d.getTime() / 1000),
+    nanoseconds: 0,
+  }),
+  now: () => {
+    const d = new Date()
+    return {
+      toDate: () => d,
+      toMillis: () => d.getTime(),
+      seconds: Math.floor(d.getTime() / 1000),
+      nanoseconds: 0,
+    }
+  },
+},
 }))
