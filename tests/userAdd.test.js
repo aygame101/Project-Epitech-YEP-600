@@ -1,98 +1,109 @@
-/* auth.test.ts */
+// tests/userAdd.test.js
 import React from 'react'
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native'
-import { Alert } from 'react-native';
-import { Auth } from '../components/login/auth'
-import { signup, login } from '../components/login/auth'
+import { render, fireEvent, screen, waitFor, cleanup } from '@testing-library/react-native'
+import { Alert } from 'react-native'
+
+// ⚠️ On n’importe plus signup/login depuis le composant.
+// On teste les "services" via les hooks:
+import { useAuthSignup } from '../hooks/login/useAuthSignup'
+import { useAuthLogin } from '../hooks/login/useAuthLogin'
+
+// Et on importe le composant pour les tests UI
+import Auth from '../components/login/auth'
+
+// Firebase mocks
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 import { runTransaction, getDoc } from 'firebase/firestore'
-import { cleanup } from '@testing-library/react-native'
 
 // -----------------
-// Mock Firebase
+// Mocks Firebase
 // -----------------
 jest.mock('../config/firebaseConfig', () => ({ auth: {}, db: {} }))
+
 jest.mock('firebase/auth', () => ({
   createUserWithEmailAndPassword: jest.fn(),
   signInWithEmailAndPassword: jest.fn(),
   getReactNativePersistence: jest.fn(),
   initializeAuth: jest.fn(),
 }))
-jest.mock('firebase/firestore')
+
+// On explicite les fonctions Firestore utilisées (doc peut renvoyer n'importe quel objet)
+jest.mock('firebase/firestore', () => ({
+  doc: jest.fn(() => ({})),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  runTransaction: jest.fn(),
+  serverTimestamp: jest.fn(() => 'ts'),
+}))
 
 // Mock Alert
 jest.spyOn(Alert, 'alert')
 
-// -----------------
-// Auth Service Tests
-// -----------------
 describe('Auth Service', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     cleanup()
   })
 
-  // -----------------------
-  // SIGNUP
-  // -----------------------
   describe('signup', () => {
     it('crée un compte avec un username valide', async () => {
-      (createUserWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: { uid: '123' } })
-      ;(runTransaction as jest.Mock).mockImplementationOnce(async (db: unknown, fn: (transaction: unknown) => Promise<void>) => {
+      createUserWithEmailAndPassword.mockResolvedValueOnce({ user: { uid: '123' } })
+      runTransaction.mockImplementationOnce(async (db, fn) => {
         await fn({
           get: jest.fn().mockResolvedValue({ exists: () => false }),
           set: jest.fn(),
         })
       })
 
-      await signup('test@example.com', 'PlayerOne', 'password123')
+      const { signup: signupFn } = useAuthSignup()
+      await signupFn('test@example.com', 'PlayerOne', 'password123')
 
       expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'test@example.com', 'password123')
       expect(runTransaction).toHaveBeenCalled()
     })
 
     it('rejette si username invalide', async () => {
-      await expect(signup('test@example.com', '!!', 'password123')).rejects.toThrow('invalid-username')
+      const { signup: signupFn } = useAuthSignup()
+      await expect(signupFn('test@example.com', '!!', 'password123')).rejects.toThrow('invalid-username')
     })
 
     it("rejette si username déjà pris", async () => {
-      (createUserWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: { uid: '123' } })
-      ;(runTransaction as jest.Mock).mockImplementationOnce(async (db: unknown, fn: (transaction: unknown) => Promise<void>) => {
+      createUserWithEmailAndPassword.mockResolvedValueOnce({ user: { uid: '123' } })
+      runTransaction.mockImplementationOnce(async (db, fn) => {
         await fn({
           get: jest.fn().mockResolvedValue({ exists: () => true }),
           set: jest.fn(),
         })
       })
 
-      await expect(signup('test@example.com', 'PlayerOne', 'password123')).rejects.toThrow('username-taken')
+      const { signup: signupFn } = useAuthSignup()
+      await expect(signupFn('test@example.com', 'PlayerOne', 'password123')).rejects.toThrow('username-taken')
     })
   })
 
-  // -----------------------
-  // LOGIN
-  // -----------------------
   describe('login', () => {
     it('connecte un utilisateur avec email valide', async () => {
-      (signInWithEmailAndPassword as jest.Mock).mockResolvedValueOnce({ user: { uid: '123' } })
-      ;(getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => true, data: () => ({ email: 'test@example.com', userName: 'PlayerOne' }) })
+      signInWithEmailAndPassword.mockResolvedValueOnce({ user: { uid: '123' } })
+      // premier getDoc pour Users/{uid} → existe()
+      getDoc.mockResolvedValueOnce({ exists: () => true, data: () => ({ email: 'test@example.com', userName: 'PlayerOne' }) })
+      // deuxième getDoc (mapping Usernames) n’est pas crucial: toute erreur est catchée dans le hook
 
-      const result = await login('test@example.com', 'password123')
+      const { login: loginFn } = useAuthLogin()
+      await loginFn('test@example.com', 'password123')
 
       expect(signInWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'test@example.com', 'password123')
-      expect(result).toEqual({ uid: '123' })
     })
 
-    it('rejette si utilisateur introuvable', async () => {
-      (getDoc as jest.Mock).mockResolvedValueOnce({ exists: () => false })
+    it('rejette si utilisateur introuvable (identifier=username)', async () => {
+      // resolveEmailFromIdentifier → getDoc(Usernames/{lower}) → not exists
+      getDoc.mockResolvedValueOnce({ exists: () => false })
 
-      await expect(login('UnknownUser', 'password123')).rejects.toThrow('Utilisateur introuvable')
+      const { login: loginFn } = useAuthLogin()
+      await expect(loginFn('UnknownUser', 'password123')).rejects.toThrow('user-not-found')
     })
   })
 })
 
-// -----------------
-// Auth Component Tests
-// -----------------
 describe('Auth Component', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -109,15 +120,21 @@ describe('Auth Component', () => {
     render(<Auth />)
     const switchBtn = screen.getByText(/Créer un compte/i)
     fireEvent.press(switchBtn)
-    expect(screen.getByPlaceholderText(/Email/i)).toBeTruthy()
-    expect(screen.getByPlaceholderText(/Username/i)).toBeTruthy()
+
+    // ⚠️ Adapter aux placeholders réels de SignupForm
+    expect(screen.getByPlaceholderText(/Adresse e-mail/i)).toBeTruthy()
+    expect(screen.getByPlaceholderText(/Nom d'utilisateur/i)).toBeTruthy()
   })
 
-  it('affiche une alerte si login échoue', async () => {
-    (signInWithEmailAndPassword as jest.Mock).mockRejectedValueOnce({ code: 'user-not-found' })
+  it('affiche une alerte si login échoue (user-not-found)', async () => {
+    // Quand on tape un username sans "@", le hook va interroger Usernames/{lower}
+    // On force getDoc à "not exists" pour déclencher l’erreur
+    getDoc.mockResolvedValueOnce({ exists: () => false })
+
     render(<Auth />)
 
-    const identifierInput = screen.getByPlaceholderText(/Email ou username/i)
+    // ⚠️ Adapter au placeholder réel de LoginForm
+    const identifierInput = screen.getByPlaceholderText(/Email ou nom d'utilisateur/i)
     const passwordInput = screen.getByPlaceholderText(/Mot de passe/i)
     const submitBtn = screen.getByText(/Se connecter/i)
 
@@ -131,17 +148,19 @@ describe('Auth Component', () => {
   })
 
   it('affiche une alerte si signup échoue avec username invalide', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {})
-    ;(signup as jest.Mock).mockRejectedValueOnce({ code: 'invalid-username' })
+    jest.spyOn(console, 'error').mockImplementation(() => { })
+
     render(<Auth />)
 
+    // Ouvre le formulaire de signup
     const switchBtn = screen.getByText(/Créer un compte/i)
     fireEvent.press(switchBtn)
 
-    const emailInput = screen.getByPlaceholderText(/Email/i)
-    const usernameInput = screen.getByPlaceholderText(/Username/i)
+    const emailInput = screen.getByPlaceholderText(/Adresse e-mail/i)
+    const usernameInput = screen.getByPlaceholderText(/Nom d'utilisateur/i)
     const passwordInput = screen.getByPlaceholderText(/Mot de passe/i)
-    const submitBtn = screen.getByText(/S’inscrire/i)
+    // ⚠️ Bouton réel dans SignupForm
+    const submitBtn = screen.getByText(/Valider/i)
 
     fireEvent.changeText(emailInput, 'test@example.com')
     fireEvent.changeText(usernameInput, '!!')

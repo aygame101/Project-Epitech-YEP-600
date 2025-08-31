@@ -1,63 +1,55 @@
-/* eslint-env jest */
-// __tests__/firebaseService.test.js
-// @ts-nocheck
+// __tests__/firebaseService.test.js (ou tests/firebaseService.test.js)
 
-import { getUser } from '../components/services/firebaseService';
-import { getDoc, doc } from 'firebase/firestore';
+// ⚠️ Le mock DOIT être déclaré avant l'import du service
+jest.mock('../config/firebaseConfig', () => ({ db: {} }))
 
-// On mock les fonctions Firestore
+import { getUser } from '../components/services/firebaseService'
+import { getDoc, doc } from 'firebase/firestore'
+
+// Firestore mock
 jest.mock('firebase/firestore', () => ({
   getDoc: jest.fn(),
   doc: jest.fn(),
-}));
+}))
 
 describe('Service Firebase - getUser', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
+    jest.clearAllMocks()
+  })
 
   it('retourne les données utilisateur si elles existent', async () => {
-    // Mock Firestore renvoyant un document existant
     getDoc.mockResolvedValueOnce({
       exists: () => true,
       id: 'abc123',
       data: () => ({ name: 'John', email: 'john@example.com' }),
-    });
+    })
+    doc.mockReturnValueOnce('fakeDocRef')
 
-    doc.mockReturnValueOnce('fakeDocRef');
-
-    const user = await getUser('abc123');
+    const user = await getUser('abc123')
 
     expect(user).toEqual({
       id: 'abc123',
       name: 'John',
       email: 'john@example.com',
-    });
+    })
+    expect(doc).toHaveBeenCalledWith(expect.anything(), 'Users', 'abc123')
+    expect(getDoc).toHaveBeenCalledWith('fakeDocRef')
+  })
 
-    expect(doc).toHaveBeenCalledWith(expect.anything(), 'users', 'abc123');
-    expect(getDoc).toHaveBeenCalledWith('fakeDocRef');
-  });
+  it("retourne null si l'utilisateur n'existe pas", async () => {
+    getDoc.mockResolvedValueOnce({ exists: () => false })
+    doc.mockReturnValueOnce('fakeDocRef')
 
-  it('retourne null si l’utilisateur n’existe pas', async () => {
-    // Mock Firestore renvoyant un document inexistant
-    getDoc.mockResolvedValueOnce({
-      exists: () => false,
-    });
+    const user = await getUser('notfound')
 
-    doc.mockReturnValueOnce('fakeDocRef');
-
-    const user = await getUser('notfound');
-
-    expect(user).toBeNull();
-    expect(getDoc).toHaveBeenCalledWith('fakeDocRef');
-  });
+    expect(user).toBeNull()
+    expect(getDoc).toHaveBeenCalledWith('fakeDocRef')
+  })
 
   it('gère les erreurs Firestore correctement', async () => {
-    // Mock Firestore qui lance une erreur
-    getDoc.mockRejectedValueOnce(new Error('Firestore error'));
+    getDoc.mockRejectedValueOnce(new Error('Firestore error'))
+    doc.mockReturnValueOnce('fakeDocRef')
 
-    doc.mockReturnValueOnce('fakeDocRef');
-
-    await expect(getUser('errorCase')).rejects.toThrow('Firestore error');
-  });
-});
+    await expect(getUser('errorCase')).rejects.toThrow('Firestore error')
+  })
+})
