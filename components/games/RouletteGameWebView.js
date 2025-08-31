@@ -72,7 +72,7 @@ export default function RouletteGameWebView() {
     if (loading) {
         return (
             <View style={styles.loader}>
-                <ActivityIndicator size="large" color="#e94560" />
+                <ActivityIndicator testID="loader" size="large" color="#e94560" />
             </View>
         )
     }
@@ -98,6 +98,7 @@ export default function RouletteGameWebView() {
             />
 
             <WebView
+                testID="webview"
                 originWhitelist={['*']}
                 source={{ html }}
                 javaScriptEnabled
