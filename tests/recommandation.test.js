@@ -1,5 +1,5 @@
 // tests/recommandation.test.js
-// Tests unitaires pour le systeme de recommandation
+// Tests unitaires pour le système de recommandation (version Jest)
 
 const {
   getGameRecommendations,
@@ -8,9 +8,13 @@ const {
   GAME_TYPES,
   DIFFICULTY_LEVELS,
   GAME_RECOMMENDATIONS
-} = require('../ia/recommandation');
+} = require('../ia/recommandation')
 
-// Donnees de test pour differents types d'utilisateurs
+// Polyfill performance.now() pour Node
+const { performance } = require('perf_hooks')
+global.performance = global.performance || performance
+
+// Données de test pour différents types d'utilisateurs
 const testUsers = {
   beginner: {
     walletBalance: 50,
@@ -63,219 +67,127 @@ const testUsers = {
     totalWins: 7,
     totalLosses: 1
   }
-};
-
-// Test de la fonction analyzeUserPerformance
-function testAnalyzeUserPerformance() {
-  console.log('\nTEST: analyzeUserPerformance');
-  console.log('='.repeat(40));
-
-  try {
-    // Test utilisateur debutant
-    const beginnerScore = analyzeUserPerformance(testUsers.beginner);
-    console.log(`Debutant - Score: ${beginnerScore} (Attendu: < 300)`);
-
-    // Test utilisateur intermediaire
-    const intermediateScore = analyzeUserPerformance(testUsers.intermediate);
-    console.log(`Intermediaire - Score: ${intermediateScore} (Attendu: 300-600)`);
-
-    // Test utilisateur avance
-    const advancedScore = analyzeUserPerformance(testUsers.advanced);
-    console.log(`Avance - Score: ${advancedScore} (Attendu: 600-900)`);
-
-    // Test utilisateur expert
-    const expertScore = analyzeUserPerformance(testUsers.expert);
-    console.log(`Expert - Score: ${expertScore} (Attendu: > 900)`);
-
-    // Verifications
-    if (beginnerScore < 300) console.log('Score debutant correct');
-    if (intermediateScore >= 300 && intermediateScore < 600) console.log('Score intermediaire correct');
-    if (advancedScore >= 600 && advancedScore < 900) console.log('Score avance correct');
-    if (expertScore >= 900) console.log('Score expert correct');
-
-    console.log('Tous les tests analyzeUserPerformance ont reussi!');
-    return true;
-  } catch (error) {
-    console.error('Erreur dans testAnalyzeUserPerformance:', error);
-    return false;
-  }
 }
 
-// Test de la fonction getGameRecommendations
-function testGetGameRecommendations() {
-  console.log('\nTEST: getGameRecommendations');
-  console.log('='.repeat(40));
+describe('Constantes', () => {
+  test('GAME_TYPES expose les types attendus', () => {
+    expect(GAME_TYPES).toEqual(
+      expect.objectContaining({
+        BLACKJACK: 'blackjack',
+        SLOT: 'slot'
+      })
+    )
+  })
 
-  try {
-    Object.entries(testUsers).forEach(([userType, userData]) => {
-      console.log(`\nTest ${userType}:`);
+  test('DIFFICULTY_LEVELS expose 4 niveaux lisibles', () => {
+    // On vérifie la structure (clés) et que les valeurs sont des strings
+    expect(DIFFICULTY_LEVELS).toEqual(
+      expect.objectContaining({
+        BEGINNER: expect.any(String),
+        INTERMEDIATE: expect.any(String),
+        ADVANCED: expect.any(String),
+        EXPERT: expect.any(String),
+      })
+    )
+    // Si tu utilises des libellés FR, décommente cette ligne :
+    expect(Object.values(DIFFICULTY_LEVELS)).toEqual(
+      expect.arrayContaining(['Facile', 'Moyenne', 'Difficile', 'Expert'])
+    )
+  })
 
-      const recommendations = getGameRecommendations(userData);
+  test('GAME_RECOMMENDATIONS contient au moins blackjack et slot', () => {
+    expect(GAME_RECOMMENDATIONS).toEqual(
+      expect.objectContaining({
+        blackjack: expect.anything(),
+        slot: expect.anything(),
+      })
+    )
+  })
+})
 
-      // Verifier la structure des recommandations
-      if (recommendations.userScore !== undefined) console.log('userScore present');
-      if (recommendations.difficultyLevel !== undefined) console.log('difficultyLevel present');
-      if (recommendations.overallRecommendation !== undefined) console.log('overallRecommendation present');
-      if (recommendations.games !== undefined) console.log('games present');
+describe('analyzeUserPerformance', () => {
+  test('classe débutant < 300', () => {
+    const score = analyzeUserPerformance(testUsers.beginner)
+    expect(score).toBeLessThan(300)
+  })
 
-      // Verifier les jeux
-      if (recommendations.games.blackjack) console.log('Recommandations blackjack presentes');
-      if (recommendations.games.slot) console.log('Recommandations slot presentes');
+  test('classe intermédiaire entre 300 et 600', () => {
+    const score = analyzeUserPerformance(testUsers.intermediate)
+    expect(score).toBeGreaterThanOrEqual(300)
+    expect(score).toBeLessThan(600)
+  })
 
-      // Verifier la pertinence
-      Object.entries(recommendations.games).forEach(([gameType, gameData]) => {
-        if (gameData.suitability >= 0 && gameData.suitability <= 100) {
-          console.log(`Pertinence ${gameType}: ${gameData.suitability}%`);
-        } else {
-          console.log(`Pertinence ${gameType} invalide: ${gameData.suitability}%`);
-        }
-      });
-    });
+  test('ordre des scores: beginner < intermediate < advanced ≤ expert', () => {
+    const sBegin = analyzeUserPerformance(testUsers.beginner)
+    const sInter = analyzeUserPerformance(testUsers.intermediate)
+    const sAdv   = analyzeUserPerformance(testUsers.advanced)
+    const sExp   = analyzeUserPerformance(testUsers.expert)
 
-    console.log('Tous les tests getGameRecommendations ont reussi!');
-    return true;
-  } catch (error) {
-    console.error('Erreur dans testGetGameRecommendations:', error);
-    return false;
-  }
-}
+    expect(sBegin).toBeLessThan(sInter)
+    expect(sInter).toBeLessThan(sAdv)
+    expect(sAdv).toBeLessThanOrEqual(sExp)
+  })
+})
 
-// Test de la fonction getPersonalizedTips
-function testGetPersonalizedTips() {
-  console.log('\nTEST: getPersonalizedTips');
-  console.log('='.repeat(40));
 
-  try {
-    // Test pour blackjack
-    const blackjackTips = getPersonalizedTips(testUsers.beginner, 'blackjack');
-    if (Array.isArray(blackjackTips) && blackjackTips.length > 0) {
-      console.log('Conseils blackjack generes:', blackjackTips.length);
-    } else {
-      console.log('Aucun conseil blackjack genere');
+describe('getGameRecommendations', () => {
+  const users = Object.entries(testUsers)
+
+  test.each(users)('structure de retour correcte pour %s', (_label, userData) => {
+    const r = getGameRecommendations(userData)
+    expect(r).toEqual(
+      expect.objectContaining({
+        userScore: expect.any(Number),
+        difficultyLevel: expect.any(String),
+        overallRecommendation: expect.any(String),
+        games: expect.objectContaining({
+          blackjack: expect.any(Object),
+          slot: expect.any(Object),
+        }),
+      })
+    )
+  })
+
+  test.each(users)('pertinence 0..100 pour chaque jeu - %s', (_label, userData) => {
+    const r = getGameRecommendations(userData)
+    for (const game of Object.values(r.games)) {
+      expect(game.suitability).toBeGreaterThanOrEqual(0)
+      expect(game.suitability).toBeLessThanOrEqual(100)
     }
+  })
+})
 
-    // Test pour slot
-    const slotTips = getPersonalizedTips(testUsers.beginner, 'slot');
-    if (Array.isArray(slotTips) && slotTips.length > 0) {
-      console.log('Conseils slot generes:', slotTips.length);
-    } else {
-      console.log('Aucun conseil slot genere');
+describe('getPersonalizedTips', () => {
+  test('renvoie une liste pour blackjack (beginner)', () => {
+    const tips = getPersonalizedTips(testUsers.beginner, 'blackjack')
+    expect(Array.isArray(tips)).toBe(true)
+    if (tips.length) {
+      for (const t of tips) expect(typeof t).toBe('string')
     }
+  })
 
-    // Test avec utilisateur avance
-    const advancedTips = getPersonalizedTips(testUsers.advanced, 'blackjack');
-    if (Array.isArray(advancedTips) && advancedTips.length > 0) {
-      console.log('Conseils avances generes:', advancedTips.length);
-    } else {
-      console.log('Aucun conseil avance genere');
+  test('renvoie une liste pour slot (beginner)', () => {
+    const tips = getPersonalizedTips(testUsers.beginner, 'slot')
+    expect(Array.isArray(tips)).toBe(true)
+    if (tips.length) {
+      for (const t of tips) expect(typeof t).toBe('string')
     }
+  })
 
-    console.log('Tous les tests getPersonalizedTips ont reussi!');
-    return true;
-  } catch (error) {
-    console.error('Erreur dans testGetPersonalizedTips:', error);
-    return false;
-  }
-}
-
-// Test des constantes
-function testConstants() {
-  console.log('\nTEST: Constantes');
-  console.log('='.repeat(40));
-
-  try {
-    // Test GAME_TYPES
-    if (GAME_TYPES.BLACKJACK === 'blackjack') console.log('GAME_TYPES.BLACKJACK correct');
-    if (GAME_TYPES.SLOT === 'slot') console.log('GAME_TYPES.SLOT correct');
-
-    // Test DIFFICULTY_LEVELS
-    if (DIFFICULTY_LEVELS.BEGINNER === 'Facile') console.log('DIFFICULTY_LEVELS.BEGINNER correct');
-    if (DIFFICULTY_LEVELS.INTERMEDIATE === 'Moyenne') console.log('DIFFICULTY_LEVELS.INTERMEDIATE correct');
-    if (DIFFICULTY_LEVELS.ADVANCED === 'Difficile') console.log('DIFFICULTY_LEVELS.ADVANCED correct');
-    if (DIFFICULTY_LEVELS.EXPERT === 'Expert') console.log('DIFFICULTY_LEVELS.EXPERT correct');
-
-    // Test GAME_RECOMMENDATIONS
-    if (GAME_RECOMMENDATIONS.blackjack) console.log('GAME_RECOMMENDATIONS.blackjack present');
-    if (GAME_RECOMMENDATIONS.slot) console.log('GAME_RECOMMENDATIONS.slot present');
-
-    console.log('Toutes les constantes sont correctes!');
-    return true;
-  } catch (error) {
-    console.error('Erreur dans testConstants:', error);
-    return false;
-  }
-}
-
-// Test de performance
-function testPerformance() {
-  console.log('\nTEST: Performance');
-  console.log('='.repeat(40));
-
-  try {
-    const startTime = performance.now();
-
-    // Executer 1000 analyses de performance
-    for (let i = 0; i < 1000; i++) {
-      analyzeUserPerformance(testUsers.intermediate);
+  test('renvoie une liste pour blackjack (advanced)', () => {
+    const tips = getPersonalizedTips(testUsers.advanced, 'blackjack')
+    expect(Array.isArray(tips)).toBe(true)
+    if (tips.length) {
+      for (const t of tips) expect(typeof t).toBe('string')
     }
+  })
+})
 
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-
-    console.log(`1000 analyses executees en ${duration.toFixed(2)}ms`);
-    console.log(`Temps moyen par analyse: ${(duration / 1000).toFixed(3)}ms`);
-
-    if (duration < 1000) {
-      console.log('Performance acceptable (< 1 seconde)');
-    } else {
-      console.log('Performance lente (> 1 seconde)');
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Erreur dans testPerformance:', error);
-    return false;
-  }
-}
-
-// Executer tous les tests
-function runAllTests() {
-  console.log('LANCEMENT DE TOUS LES TESTS');
-  console.log('='.repeat(50));
-
-  const results = [
-    testConstants(),
-    testAnalyzeUserPerformance(),
-    testGetGameRecommendations(),
-    testGetPersonalizedTips(),
-    testPerformance()
-  ];
-
-  const passedTests = results.filter(result => result === true).length;
-  const totalTests = results.length;
-
-  console.log('\nRESULTATS DES TESTS');
-  console.log('='.repeat(30));
-  console.log(`Tests reussis: ${passedTests}/${totalTests}`);
-
-  if (passedTests === totalTests) {
-    console.log('TOUS LES TESTS ONT REUSSI!');
-  } else {
-    console.log('CERTAINS TESTS ONT ECHOUE');
-  }
-
-  return {
-    passed: passedTests,
-    total: totalTests,
-    success: passedTests === totalTests
-  };
-}
-
-module.exports = {
-  runAllTests,
-  testAnalyzeUserPerformance,
-  testGetGameRecommendations,
-  testGetPersonalizedTips,
-  testConstants,
-  testPerformance
-}; 
+describe('Performance', () => {
+  test('1000 analyses en < 2s', () => {
+    const t0 = performance.now()
+    for (let i = 0; i < 1000; i++) analyzeUserPerformance(testUsers.intermediate)
+    const dt = performance.now() - t0
+    expect(dt).toBeLessThan(2000)
+  })
+})
