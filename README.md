@@ -3,7 +3,7 @@
 ## Français
 
 ### Description
-EpiGamble est une application mobile de type casino social développée avec React Native et Expo. Elle propose plusieurs mini-jeux (machine à sous, blackjack, roulette), un système de bonus quotidien, un chat intégré et un classement basé sur les gains des joueurs. Le projet utilise Firebase pour l'authentification, la base de données en temps réel et les fonctions cloud.
+EpiGamble est une application mobile de type casino développée avec React Native et Expo. Elle propose plusieurs mini-jeux (machine à sous, blackjack, roulette), un système de bonus quotidien, un chat intégré et un classement basé sur les gains des joueurs. Le projet utilise Firebase pour l'authentification, la base de données en temps réel et les fonctions cloud.
 
 ### Fonctionnalités principales
 - Machine à sous avec animations et gains aléatoires
