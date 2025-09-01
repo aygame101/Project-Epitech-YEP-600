@@ -68,7 +68,7 @@ npm test
 ## English
 
 ### Description
-EpiGamble is a social casino mobile application developed with React Native and Expo. It provides several mini-games (slot machine, blackjack, roulette), a daily bonus system, an integrated chat, and a global leaderboard based on players' earnings. The project uses Firebase for authentication, real-time database, and cloud functions.
+EpiGamble is a casino mobile application developed with React Native and Expo. It provides several mini-games (slot machine, blackjack, roulette), a daily bonus system, an integrated chat, and a global leaderboard based on players' earnings. The project uses Firebase for authentication, real-time database, and cloud functions.
 
 ### Key Features
 - Slot machine with animations and random winnings
